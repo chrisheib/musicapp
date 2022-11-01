@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:musicapp/songdataframe.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_background/flutter_background.dart';
@@ -78,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
     notificationTitle: "flutter_background example app",
     notificationText:
         "Background notification for keeping the example app running in the background",
-    notificationImportance: AndroidNotificationImportance.Default,
+    notificationImportance: AndroidNotificationImportance.Max,
     notificationIcon: AndroidResource(
         name: 'background_icon',
         defType: 'drawable'), // Default is ic_launcher from folder mipmap
@@ -86,7 +87,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _incrementCounter() async {
     await player.setUrl(// Load a URL
-        'http://stschiff.de:81/songs/random'); // Schemes: (https: | file: | asset: )
+        'https://music.stschiff.de/songs/random'); // Schemes: (https: | file: | asset: )
     player.play(); // Play without waiting for completion
 
     bool success =
@@ -144,13 +145,17 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            SongDataFrame(
+              key: const Key("song1"),
+              player: player,
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+            // const Text(
+            //   'You have pushed the button this many times:',
+            // ),
+            // Text(
+            //   '$_counter',
+            //   style: Theme.of(context).textTheme.headline4,
+            // ),
           ],
         ),
       ),
