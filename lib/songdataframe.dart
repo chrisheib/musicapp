@@ -5,6 +5,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import 'song.dart';
 
+String printDuration(Duration duration) {
+  String twoDigits(int n) => n.toString().padLeft(2, "0");
+  // String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+  String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+  return "${twoDigits(duration.inMinutes)}:$twoDigitSeconds";
+}
+
 class SongDataFrame extends StatefulWidget {
   final AudioPlayer player;
   const SongDataFrame({required Key key, required this.player})
@@ -16,16 +23,30 @@ class SongDataFrame extends StatefulWidget {
 
 class _SongDataFrameState extends State<SongDataFrame> {
   late Song song;
+  bool playing = false;
 
   _SongDataFrameState() {
-    song = const Song(
-        id: 0, title: "null", album: "null", artist: "null", length: "null");
-    Timer.periodic(
-        const Duration(milliseconds: 300), (Timer t) => setState(() {}));
+    song = Song(
+        id: 0,
+        title: "",
+        album: "",
+        artist: "",
+        length: "",
+        filename: "",
+        rating: 0);
+    Timer.periodic(const Duration(milliseconds: 300), (Timer t) async {
+      // print(
+      // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
+      if (playing && widget.player.position >= widget.player.duration!) {
+        await play();
+      }
+      setState(() {});
+    });
   }
 
   Future<void> play() async {
-    song = await Song.fetch_random();
+    playing = true;
+    song = await Song.fetchRandom();
     var songid = song.id;
     await widget.player.setUrl(// Load a URL
         'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
@@ -34,6 +55,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
   }
 
   void stop() async {
+    playing = false;
     widget.player.stop();
   }
 
@@ -42,27 +64,40 @@ class _SongDataFrameState extends State<SongDataFrame> {
       Fluttertoast.showToast(
           msg: "Song downgevotet ⬇️",
           toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
+          gravity: ToastGravity.SNACKBAR,
           timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
+          backgroundColor: Colors.green,
+          textColor: Colors.black,
           fontSize: 16.0);
     }
     await play();
   }
 
   void upvote() async {
-    var success = await song.upvote();
-    print(success);
-    if (success) {
-      Fluttertoast.showToast(
-          msg: "Song upgevotet ❤️",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.green,
-          textColor: Colors.black,
-          fontSize: 16.0);
+    if (!song.upvoted) {
+      var success = await song.upvote();
+      if (success) {
+        Fluttertoast.showToast(
+            msg: "Song upgevotet ❤️",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.SNACKBAR,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.green,
+            textColor: Colors.black,
+            fontSize: 16.0);
+      }
+    } else {
+      var success = await song.downvote();
+      if (success) {
+        Fluttertoast.showToast(
+            msg: "Upvote entfernt 💔",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.SNACKBAR,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.green,
+            textColor: Colors.black,
+            fontSize: 16.0);
+      }
     }
   }
 
@@ -71,48 +106,81 @@ class _SongDataFrameState extends State<SongDataFrame> {
     return Center(
       child: Column(
         children: [
-          Text(song.title),
-          Text(song.artist),
-          Text(song.album),
+          Text(song.title != "" ? song.title : song.filename,
+              style: const TextStyle(fontSize: 30)),
+          Text(song.artist, style: const TextStyle(fontSize: 30)),
+          Text(song.album, style: const TextStyle(fontSize: 30)),
+          Text(
+              "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
+              style: const TextStyle(fontSize: 30)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 100,
+                    height: 200,
+                    minWidth: 150,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
-                    child: Text(widget.player.playing ? "⏭️" : "▶️"),
+                    child: Text(widget.player.playing ? "⏭️" : "▶️",
+                        style: const TextStyle(fontSize: 40)),
                   )),
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 100,
+                    height: 200,
+                    minWidth: 150,
                     onPressed: stop,
                     color: Colors.blueAccent.shade100,
-                    child: const Text("⏹️"),
-                  )),
-              Container(
-                  margin: const EdgeInsets.all(5.0),
-                  child: MaterialButton(
-                    height: 100,
-                    onPressed: upvote,
-                    color: Colors.blueAccent.shade100,
-                    child: const Text("💓"),
-                  )),
-              Container(
-                  margin: const EdgeInsets.all(5.0),
-                  child: MaterialButton(
-                    height: 100,
-                    onPressed: downvoteskip,
-                    color: Colors.blueAccent.shade100,
-                    child: const Text("🤮"),
+                    child: const Text("⏹️", style: TextStyle(fontSize: 40)),
                   )),
             ],
           ),
-          Text(widget.player.position.toString()),
-          Text(song.length),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                  margin: const EdgeInsets.all(5.0),
+                  child: MaterialButton(
+                    height: 200,
+                    minWidth: 150,
+                    onPressed: upvote,
+                    color: song.upvoted
+                        ? Colors.greenAccent.shade200
+                        : Colors.blueAccent.shade100,
+                    child: const Text("💓", style: TextStyle(fontSize: 40)),
+                  )),
+              Container(
+                  margin: const EdgeInsets.all(5.0),
+                  child: MaterialButton(
+                    height: 200,
+                    minWidth: 150,
+                    onPressed: downvoteskip,
+                    color: Colors.blueAccent.shade100,
+                    child: const Text("🤮", style: TextStyle(fontSize: 40)),
+                  )),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(song.rating >= 1 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 2 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 3 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 4 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 5 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 6 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 7 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+            ],
+          ),
         ],
       ),
     );

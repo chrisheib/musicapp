@@ -2,19 +2,38 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+// {
+//  "id":2861,
+//  "path":"E:\\Musik\\Jan Hegenberg\\DEMOtape\\22 Knallwach.mp3",
+//  "filename":"22 Knallwach.mp3",
+//  "songname":"Knallwach-Hymne",
+//  "artist":"Jan Hegenberg :: www.janhegenberg.de :: powererd by Levicom",
+//  "album":"DEMOtape",
+//  "length":"3:27",
+//  "seconds":207,
+//  "rating":3,
+//  "vote":0,
+//  "times_played":1
+// }
+
 class Song {
   final int id;
   final String title;
   final String album;
   final String artist;
+  final String filename;
   final String length;
+  int rating;
+  bool upvoted = false;
 
-  const Song({
+  Song({
     required this.id,
     required this.title,
     required this.album,
     required this.artist,
+    required this.filename,
     required this.length,
+    required this.rating,
   });
 
   factory Song.fromJson(Map<String, dynamic> json) {
@@ -24,10 +43,12 @@ class Song {
       album: json['album'],
       artist: json['artist'],
       length: json['length'],
+      filename: json['filename'],
+      rating: json['rating'],
     );
   }
 
-  static Future<Song> fetch_random() async {
+  static Future<Song> fetchRandom() async {
     var response =
         await http.get(Uri.parse('https://music.stschiff.de/random_id'));
     if (response.statusCode == 200) {
@@ -61,12 +82,22 @@ class Song {
   Future<bool> upvote() async {
     var response =
         await http.get(Uri.parse('https://music.stschiff.de/upvote/$id'));
-        return response.statusCode == 200;
+    var success = response.statusCode == 200;
+    if (success) {
+      upvoted = true;
+      rating += 1;
+    }
+    return success;
   }
 
   Future<bool> downvote() async {
     var response =
         await http.get(Uri.parse('https://music.stschiff.de/downvote/$id'));
-        return response.statusCode == 200;
+    var success = response.statusCode == 200;
+    if (success) {
+      upvoted = false;
+      rating -= 1;
+    }
+    return success;
   }
 }

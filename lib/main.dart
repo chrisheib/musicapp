@@ -1,47 +1,50 @@
-import 'dart:io';
-import 'dart:async';
-import 'package:flutter/widgets.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:flutter/foundation.dart';
+// import 'dart:io';
+// import 'dart:async';
+// import 'package:flutter/widgets.dart';
+// import 'package:path/path.dart';
+// import 'package:sqflite/sqflite.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
+// import 'package:path_provider/path_provider.dart';
+// import 'package:dio/dio.dart';
 import 'package:flutter_background/flutter_background.dart';
 
 void main() async {
+  // https://docs.flutter.dev/cookbook/persistence/sqlite
+
   // Avoid errors caused by flutter upgrade.
   // Importing 'package:flutter/widgets.dart' is required.
   WidgetsFlutterBinding.ensureInitialized();
   // Open the database and store the reference.
-  final database = await openDatabase(
-    // Set the path to the database. Note: Using the `join` function from the
-    // `path` package is best practice to ensure the path is correctly
-    // constructed for each platform.
-    join(await getDatabasesPath(), 'songs.db'),
-    // When the database is first created, create a table to store dogs.
-    onCreate: (db, version) {
-      // Run the CREATE TABLE statement on the database.
-      return db.execute(
-        'CREATE TABLE dogs(id INTEGER PRIMARY KEY, name TEXT, age INTEGER)',
-      );
-    },
-    // Set the version. This executes the onCreate function and provides a
-    // path to perform database upgrades and downgrades.
-    version: 1,
-  );
+  // final database = await openDatabase(
+  //   // Set the path to the database. Note: Using the `join` function from the
+  //   // `path` package is best practice to ensure the path is correctly
+  //   // constructed for each platform.
+  //   join(await getDatabasesPath(), 'songs.db'),
+  //   // When the database is first created, create a table to store dogs.
+  //   onCreate: (db, version) {
+  //     // Run the CREATE TABLE statement on the database.
+  //     return db.execute(
+  //       'CREATE TABLE songs(id INTEGER PRIMARY KEY, title TEXT, album TEXT, artist TEXT, )',
+  //     );
+  //   },
+  //   // Set the version. This executes the onCreate function and provides a
+  //   // path to perform database upgrades and downgrades.
+  //   version: 1,
+  // );
 
-  runApp(MyApp(
-    key: const Key("main"),
-    db: database,
+  runApp(const MyApp(
+    key: Key("main"),
+    // db: database,
   ));
 }
 
 class MyApp extends StatefulWidget {
-  final Database db;
-  const MyApp({super.key, required this.db});
+  // final Database db;
+  // const MyApp({super.key, required this.db});
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -100,7 +103,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   final AudioPlayer player = AudioPlayer();
 
   final androidConfig = const FlutterBackgroundAndroidConfig(
@@ -113,31 +115,31 @@ class _MyHomePageState extends State<MyHomePage> {
         defType: 'drawable'), // Default is ic_launcher from folder mipmap
   );
 
-  void _incrementCounter() async {
-    await player.setUrl(// Load a URL
-        'https://music.stschiff.de/songs/random'); // Schemes: (https: | file: | asset: )
-    player.play(); // Play without waiting for completion
+  // void _incrementCounter() async {
+  //   await player.setUrl(// Load a URL
+  //       'https://music.stschiff.de/songs/random'); // Schemes: (https: | file: | asset: )
+  //   player.play(); // Play without waiting for completion
 
-    bool success =
-        await FlutterBackground.initialize(androidConfig: androidConfig);
-    print(success);
-    FlutterBackground.enableBackgroundExecution();
+  //   bool success =
+  //       await FlutterBackground.initialize(androidConfig: androidConfig);
+  //   print(success);
+  //   FlutterBackground.enableBackgroundExecution();
 
-    // var dio = Dio();
-    // String dir = (await getApplicationDocumentsDirectory()).path;
-    // var response = await dio.download(
-    //     'http://stschiff.de:81/songs/random', '$dir/xx.html');
-    // print(response.data.toString());
+  //   // var dio = Dio();
+  //   // String dir = (await getApplicationDocumentsDirectory()).path;
+  //   // var response = await dio.download(
+  //   //     'http://stschiff.de:81/songs/random', '$dir/xx.html');
+  //   // print(response.data.toString());
 
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  //   // setState(() {
+  //   //   // This call to setState tells the Flutter framework that something has
+  //   //   // changed in this State, which causes it to rerun the build method below
+  //   //   // so that the display can reflect the updated values. If we changed
+  //   //   // _counter without calling setState(), then the build method would not be
+  //   //   // called again, and so nothing would appear to happen.
+  //   //   _counter++;
+  //   // });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -148,11 +150,11 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      // appBar: AppBar(
+      //   // Here we take the value from the MyHomePage object that was created by
+      //   // the App.build method, and use it to set our appbar title.
+      //   title: Text(widget.title),
+      // ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
@@ -172,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // axis because Columns are vertical (the cross axis would be
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
             SongDataFrame(
               key: const Key("song1"),
               player: player,
@@ -187,11 +189,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _incrementCounter,
+      //   tooltip: 'Increment',
+      //   child: const Icon(Icons.add),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
