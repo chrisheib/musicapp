@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:musicapp/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'song.dart';
@@ -36,33 +37,49 @@ class _SongDataFrameState extends State<SongDataFrame> {
         artist: "",
         length: "",
         filename: "",
-        rating: 0);
+        rating: 0,
+        downloaded: false);
     Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
       // print(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       if (playing &&
           widget.player.position >=
               (widget.player.duration ?? const Duration(days: 1 << 63))) {
-        await play();
+        if (playing) {
+          await play();
+        }
       }
       setState(() {});
     });
   }
 
-  Future<void> play() async {
-    playing = true;
-    song = await Song.fetchRandom(widget.db);
-    var songid = song.id;
-    // widget.player.stop();
-    await widget.player.setUrl(// Load a URL
-        'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
+  Future<void> play([int id = -1]) async {
+    await widget.player.stop();
+    if (id == -1) {
+      song = await Song.fetchRandom(widget.db);
+    } else {
+      song = await Song.fetch(id);
+    }
+    // var songid = song.id;
+    if (!song.downloaded) {
+      await song.download();
+    }
+    var path = await getSongDir(song.id.toString());
+    print(path);
+    await widget.player.setFilePath(path);
+
+    // Load a URL
+
+    // await widget.player.setUrl(// Load a URL
+    //     'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
     // await widget.player.setLoopMode(LoopMode.all);
     widget.player.play(); // Play without waiting for completion
+    playing = true;
   }
 
   void stop() async {
     playing = false;
-    widget.player.stop();
+    await widget.player.stop();
   }
 
   void downvoteskip() async {
@@ -187,8 +204,24 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   style: const TextStyle(fontSize: 40)),
             ],
           ),
+          MaterialButton(
+              color: Colors.blueAccent.shade100,
+              onPressed: listSongs,
+              child: const Text("alles nur geklaut")),
         ],
       ),
     );
+  }
+
+  void listSongs() async {
+    // final List<Map<String, dynamic>> maps = await db.query('songs');
+    // var songs = maps.map((e) => {print(e), Song.fromJson(e)});
+    // for (var s in songs) {
+    //   print(s);
+    // }
+    // var s = await Song.fetchRandom(widget.db);
+    // await s.download();
+    stop();
+    await play(4666);
   }
 }

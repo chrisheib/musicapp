@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:musicapp/downloader.dart';
 import 'package:musicapp/network.dart';
+import 'package:musicapp/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:math';
 
@@ -28,16 +30,17 @@ class Song {
   final String length;
   int rating;
   bool upvoted = false;
+  bool downloaded = false;
 
-  Song({
-    required this.id,
-    required this.title,
-    required this.album,
-    required this.artist,
-    required this.filename,
-    required this.length,
-    required this.rating,
-  });
+  Song(
+      {required this.id,
+      required this.title,
+      required this.album,
+      required this.artist,
+      required this.filename,
+      required this.length,
+      required this.rating,
+      required this.downloaded});
 
   factory Song.fromJson(Map<String, dynamic> json) {
     return Song(
@@ -48,6 +51,7 @@ class Song {
       length: json['length'] ?? "--:--",
       filename: json['filename'] ?? "",
       rating: json['rating'] ?? 0,
+      downloaded: json['downloaded'] ?? false,
     );
   }
 
@@ -111,6 +115,14 @@ class Song {
     return success;
   }
 
+  Future<bool> download() async {
+    print("Start download $id");
+    downloaded = await downloadFile(
+        'https://music.stschiff.de/songs/$id', await getSongDir(), "$id.mp3");
+    print("Finished download $id: $downloaded");
+    return downloaded;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       "id": id,
@@ -120,15 +132,11 @@ class Song {
       "filename": filename,
       "length": length,
       "rating": rating,
+      "downloaded": downloaded
     };
   }
 
-  // Define a function that inserts dogs into the database
   Future<void> saveToDb(Database db) async {
-    // Insert the Dog into the correct table. You might also specify the
-    // `conflictAlgorithm` to use in case the same dog is inserted twice.
-    //
-    // In this case, replace any previous data.
     await db.insert(
       'songs',
       toMap(),

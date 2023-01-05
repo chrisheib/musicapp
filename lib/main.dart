@@ -1,17 +1,10 @@
-// import 'dart:io';
-// import 'dart:async';
-// import 'package:flutter/widgets.dart';
 import 'dart:convert';
-
 import 'package:musicapp/song.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-// import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'package:dio/dio.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,6 +14,11 @@ void main() async {
   // Avoid errors caused by flutter upgrade.
   // Importing 'package:flutter/widgets.dart' is required.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // await FlutterDownloader.initialize(
+  //   debug:
+  //       true, // optional: set to false to disable printing logs to console (default: true)
+  // );
 
   // Open the database and store the reference.
   var database = await openDatabase(
@@ -63,10 +61,14 @@ void main() async {
           )""",
         );
       }
+      if (oldVersion <= 6) {
+        print("update 6");
+        await db.execute("ALTER TABLE songs ADD COLUMN downloaded INT");
+      }
     },
     // Set the version. This executes the onCreate function and provides a
     // path to perform database upgrades and downgrades.
-    version: 5,
+    version: 6,
   );
 
   runApp(MyApp(
@@ -78,7 +80,6 @@ void main() async {
 class MyApp extends StatefulWidget {
   final Database db;
   const MyApp({super.key, required this.db});
-  // const MyApp(super.key, {db });
 
   @override
   // ignore: no_logic_in_create_state
@@ -88,20 +89,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Database db;
   _MyAppState({required this.db});
-  // var dl;
   @override
   Widget build(BuildContext context) {
-    // dl = DownloaderUtils(
-    //   progressCallback: (current, total) {
-    //     final progress = (current / total) * 100;
-    //     print('Downloading: $progress');
-    //   },
-    //   file: File('/200MB.zip'),
-    //   progress: ProgressImplementation(),
-    //   onDone: () => print('Download done'),
-    //   deleteOnCancel: true,
-    // );
-
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -154,69 +143,15 @@ class _MyHomePageState extends State<MyHomePage> {
     notificationText:
         "Background notification for keeping the example app running in the background",
     notificationImportance: AndroidNotificationImportance.Max,
-    notificationIcon: AndroidResource(
-        name: 'background_icon',
-        defType: 'drawable'), // Default is ic_launcher from folder mipmap
+    notificationIcon:
+        AndroidResource(name: 'background_icon', defType: 'drawable'),
   );
-
-  // void _incrementCounter() async {
-  //   await player.setUrl(// Load a URL
-  //       'https://music.stschiff.de/songs/random'); // Schemes: (https: | file: | asset: )
-  //   player.play(); // Play without waiting for completion
-
-  //   bool success =
-  //       await FlutterBackground.initialize(androidConfig: androidConfig);
-  //   print(success);
-  //   FlutterBackground.enableBackgroundExecution();
-
-  //   // var dio = Dio();
-  //   // String dir = (await getApplicationDocumentsDirectory()).path;
-  //   // var response = await dio.download(
-  //   //     'http://stschiff.de:81/songs/random', '$dir/xx.html');
-  //   // print(response.data.toString());
-
-  //   // setState(() {
-  //   //   // This call to setState tells the Flutter framework that something has
-  //   //   // changed in this State, which causes it to rerun the build method below
-  //   //   // so that the display can reflect the updated values. If we changed
-  //   //   // _counter without calling setState(), then the build method would not be
-  //   //   // called again, and so nothing would appear to happen.
-  //   //   _counter++;
-  //   // });
-  // }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      // appBar: AppBar(
-      //   // Here we take the value from the MyHomePage object that was created by
-      //   // the App.build method, and use it to set our appbar title.
-      //   title: Text(widget.title),
-      // ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SongDataFrame(
@@ -228,25 +163,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: Colors.blueAccent.shade100,
                 onPressed: recreateSongDatabase,
                 child: const Text("recreate song database")),
-            MaterialButton(
-                color: Colors.blueAccent.shade100,
-                onPressed: listSongs,
-                child: const Text("list songs")),
-            // const Text(
-            //   'You have pushed the button this many times:',
-            // ),
-            // Text(
-            //   '$_counter',
-            //   style: Theme.of(context).textTheme.headline4,
-            // ),
+            // MaterialButton(
+            //     color: Colors.blueAccent.shade100,
+            //     onPressed: listSongs,
+            //     child: const Text("alles nur geklaut")),
           ],
         ),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _incrementCounter,
-      //   tooltip: 'Increment',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -270,10 +193,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void listSongs() async {
-    final List<Map<String, dynamic>> maps = await db.query('songs');
-    var songs = maps.map((e) => {print(e), Song.fromJson(e)});
-    for (var s in songs) {
-      print(s);
-    }
+    // final List<Map<String, dynamic>> maps = await db.query('songs');
+    // var songs = maps.map((e) => {print(e), Song.fromJson(e)});
+    // for (var s in songs) {
+    //   print(s);
+    // }
+    // var s = await Song.fetchRandom(widget.db);
+    // await s.download();
+    // widget.
   }
 }
