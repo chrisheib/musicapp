@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:musicapp/network.dart';
+import 'package:sqflite/sqflite.dart';
+import 'dart:math';
 
 // {
 //  "id":2861,
@@ -39,27 +42,34 @@ class Song {
   factory Song.fromJson(Map<String, dynamic> json) {
     return Song(
       id: json['id'],
-      title: json['songname'],
-      album: json['album'],
-      artist: json['artist'],
-      length: json['length'],
-      filename: json['filename'],
-      rating: json['rating'],
+      title: json['songname'] ?? "",
+      album: json['album'] ?? "",
+      artist: json['artist'] ?? "",
+      length: json['length'] ?? "--:--",
+      filename: json['filename'] ?? "",
+      rating: json['rating'] ?? 0,
     );
   }
 
-  static Future<Song> fetchRandom() async {
-    var response =
-        await http.get(Uri.parse('https://music.stschiff.de/random_id'));
-    if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      int i = int.parse(response.body);
-      return await Song.fetch(i);
+  static Future<Song> fetchRandom(Database db) async {
+    if (await isConnected()) {
+      var response =
+          await http.get(Uri.parse('https://music.stschiff.de/random_id'));
+      if (response.statusCode == 200) {
+        // If the server did return a 200 OK response,
+        // then parse the JSON.
+        int i = int.parse(response.body);
+        return await Song.fetch(i);
+      } else {
+        // If the server did not return a 200 OK response,
+        // then throw an exception.
+        throw Exception('Failed to fetch random');
+      }
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      throw Exception('Failed to load album');
+      final List<Map<String, dynamic>> songlistRes = await db.query('songs');
+      var randSongId = Random().nextInt(songlistRes.length);
+      var song = Song.fromJson(songlistRes[randSongId]);
+      return song;
     }
   }
 
@@ -99,5 +109,30 @@ class Song {
       rating -= 1;
     }
     return success;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      "id": id,
+      "title": title,
+      "album": album,
+      "artist": artist,
+      "filename": filename,
+      "length": length,
+      "rating": rating,
+    };
+  }
+
+  // Define a function that inserts dogs into the database
+  Future<void> saveToDb(Database db) async {
+    // Insert the Dog into the correct table. You might also specify the
+    // `conflictAlgorithm` to use in case the same dog is inserted twice.
+    //
+    // In this case, replace any previous data.
+    await db.insert(
+      'songs',
+      toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

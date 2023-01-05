@@ -1,8 +1,11 @@
 // import 'dart:io';
 // import 'dart:async';
 // import 'package:flutter/widgets.dart';
-// import 'package:path/path.dart';
-// import 'package:sqflite/sqflite.dart';
+import 'dart:convert';
+
+import 'package:musicapp/song.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 // import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -10,6 +13,7 @@ import 'package:musicapp/songdataframe.dart';
 // import 'package:path_provider/path_provider.dart';
 // import 'package:dio/dio.dart';
 import 'package:flutter_background/flutter_background.dart';
+import 'package:http/http.dart' as http;
 
 void main() async {
   // https://docs.flutter.dev/cookbook/persistence/sqlite
@@ -17,40 +21,73 @@ void main() async {
   // Avoid errors caused by flutter upgrade.
   // Importing 'package:flutter/widgets.dart' is required.
   WidgetsFlutterBinding.ensureInitialized();
-  // Open the database and store the reference.
-  // final database = await openDatabase(
-  //   // Set the path to the database. Note: Using the `join` function from the
-  //   // `path` package is best practice to ensure the path is correctly
-  //   // constructed for each platform.
-  //   join(await getDatabasesPath(), 'songs.db'),
-  //   // When the database is first created, create a table to store dogs.
-  //   onCreate: (db, version) {
-  //     // Run the CREATE TABLE statement on the database.
-  //     return db.execute(
-  //       'CREATE TABLE songs(id INTEGER PRIMARY KEY, title TEXT, album TEXT, artist TEXT, )',
-  //     );
-  //   },
-  //   // Set the version. This executes the onCreate function and provides a
-  //   // path to perform database upgrades and downgrades.
-  //   version: 1,
-  // );
 
-  runApp(const MyApp(
-    key: Key("main"),
-    // db: database,
+  // Open the database and store the reference.
+  var database = await openDatabase(
+    // Set the path to the database. Note: Using the `join` function from the
+    // `path` package is best practice to ensure the path is correctly
+    // constructed for each platform.
+    join(await getDatabasesPath(), 'songs.db'),
+    onUpgrade: (db, oldVersion, newVersion) async {
+      print("OnUpdate:  $oldVersion -> $newVersion");
+      if (oldVersion <= 3) {
+        print("update 3");
+        await db.execute("DROP TABLE IF EXISTS songs");
+      }
+      if (oldVersion <= 4) {
+        print("update 4");
+        await db.execute(
+          """CREATE TABLE songs(
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            album TEXT,
+            artist TEXT,
+            filename TEXT,
+            length NUMBER,
+            rating NUMBER
+          )""",
+        );
+      }
+      if (oldVersion <= 5) {
+        print("update 5");
+        await db.execute("DROP TABLE IF EXISTS songs");
+        await db.execute(
+          """CREATE TABLE songs(
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            album TEXT,
+            artist TEXT,
+            length TEXT,
+            filename TEXT,
+            rating NUMBER
+          )""",
+        );
+      }
+    },
+    // Set the version. This executes the onCreate function and provides a
+    // path to perform database upgrades and downgrades.
+    version: 5,
+  );
+
+  runApp(MyApp(
+    key: const Key("main"),
+    db: database,
   ));
 }
 
 class MyApp extends StatefulWidget {
-  // final Database db;
-  // const MyApp({super.key, required this.db});
-  const MyApp({super.key});
+  final Database db;
+  const MyApp({super.key, required this.db});
+  // const MyApp(super.key, {db });
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  // ignore: no_logic_in_create_state
+  State<MyApp> createState() => _MyAppState(db: db);
 }
 
 class _MyAppState extends State<MyApp> {
+  final Database db;
+  _MyAppState({required this.db});
   // var dl;
   @override
   Widget build(BuildContext context) {
@@ -79,13 +116,17 @@ class _MyAppState extends State<MyApp> {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(
+        title: 'Flutter Demo Home Page',
+        db: db,
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  final Database db;
+  const MyHomePage({super.key, required this.title, required this.db});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -99,10 +140,13 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  // ignore: no_logic_in_create_state
+  State<MyHomePage> createState() => _MyHomePageState(db: db);
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  _MyHomePageState({required this.db});
+  final Database db;
   final AudioPlayer player = AudioPlayer();
 
   final androidConfig = const FlutterBackgroundAndroidConfig(
@@ -178,7 +222,16 @@ class _MyHomePageState extends State<MyHomePage> {
             SongDataFrame(
               key: const Key("song1"),
               player: player,
+              db: db,
             ),
+            MaterialButton(
+                color: Colors.blueAccent.shade100,
+                onPressed: recreateSongDatabase,
+                child: const Text("recreate song database")),
+            MaterialButton(
+                color: Colors.blueAccent.shade100,
+                onPressed: listSongs,
+                child: const Text("list songs")),
             // const Text(
             //   'You have pushed the button this many times:',
             // ),
@@ -195,5 +248,32 @@ class _MyHomePageState extends State<MyHomePage> {
       //   child: const Icon(Icons.add),
       // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  void recreateSongDatabase() async {
+    var response = await http.get(Uri.parse('https://music.stschiff.de/songs'));
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      List<dynamic> songsJson = jsonDecode(response.body);
+      List<Song> songs = [];
+      for (var s in songsJson) {
+        songs.add(Song.fromJson(s));
+        print(s);
+        await songs.last.saveToDb(db);
+      }
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      throw Exception('Failed to load album');
+    }
+  }
+
+  void listSongs() async {
+    final List<Map<String, dynamic>> maps = await db.query('songs');
+    var songs = maps.map((e) => {print(e), Song.fromJson(e)});
+    for (var s in songs) {
+      print(s);
+    }
   }
 }

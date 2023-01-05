@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'song.dart';
 
@@ -13,8 +14,10 @@ String printDuration(Duration duration) {
 }
 
 class SongDataFrame extends StatefulWidget {
+  final Database db;
   final AudioPlayer player;
-  const SongDataFrame({required Key key, required this.player})
+  const SongDataFrame(
+      {required Key key, required this.player, required this.db})
       : super(key: key);
 
   @override
@@ -34,10 +37,12 @@ class _SongDataFrameState extends State<SongDataFrame> {
         length: "",
         filename: "",
         rating: 0);
-    Timer.periodic(const Duration(milliseconds: 300), (Timer t) async {
+    Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
       // print(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
-      if (playing && widget.player.position >= widget.player.duration!) {
+      if (playing &&
+          widget.player.position >=
+              (widget.player.duration ?? const Duration(days: 1 << 63))) {
         await play();
       }
       setState(() {});
@@ -46,8 +51,9 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   Future<void> play() async {
     playing = true;
-    song = await Song.fetchRandom();
+    song = await Song.fetchRandom(widget.db);
     var songid = song.id;
+    // widget.player.stop();
     await widget.player.setUrl(// Load a URL
         'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
     // await widget.player.setLoopMode(LoopMode.all);
@@ -119,7 +125,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 200,
+                    height: 175,
                     minWidth: 150,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
@@ -129,7 +135,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 200,
+                    height: 175,
                     minWidth: 150,
                     onPressed: stop,
                     color: Colors.blueAccent.shade100,
@@ -143,7 +149,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 200,
+                    height: 175,
                     minWidth: 150,
                     onPressed: upvote,
                     color: song.upvoted
@@ -154,7 +160,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 200,
+                    height: 175,
                     minWidth: 150,
                     onPressed: downvoteskip,
                     color: Colors.blueAccent.shade100,
