@@ -3,10 +3,12 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+// import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
 import 'package:mutex/mutex.dart';
+import 'package:text_scroll/text_scroll.dart';
 import 'song.dart';
 
 String printDuration(Duration duration) {
@@ -28,6 +30,8 @@ class SongDataFrame extends StatefulWidget {
 class _SongDataFrameState extends State<SongDataFrame> {
   late Song song;
   bool playing = false;
+  bool loading = false;
+  bool paused = false;
   final m = Mutex();
 
   _SongDataFrameState() {
@@ -48,6 +52,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
             widget.player.position >=
                 (widget.player.duration ?? const Duration(days: 1 << 63))) {
           if (playing) {
+            print("End of song, playing next one.");
             await play(protected: false);
           }
         }
@@ -64,7 +69,9 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
 
     try {
+      await widget.player.seek(const Duration());
       await widget.player.stop();
+      // await widget.player.setAudioSource(AudioSource.);
       do {
         if (id == -1) {
           var db = await getDbConnection();
@@ -72,25 +79,43 @@ class _SongDataFrameState extends State<SongDataFrame> {
         } else {
           song = await Song.fetch(id);
         }
+        loading = true;
+        setState(() {});
+
         // var songid = song.id;
         if (song.downloaded != 1) {
           await song.download();
         }
+
         if (song.downloaded != 1) {
           print("Song not downloaded, retry.");
         }
       } while (song.downloaded != 1);
       var path = await getSongDir(song.id.toString());
-      print(path);
+      print("Setting source: $path");
 
-      await widget.player.setFilePath(path);
+      // await widget.player.setFilePath(path);
+      await widget.player.setAudioSource(
+          AudioSource.uri(
+            Uri.file(path),
+            tag: song.toMediaItem(),
+          ),
+          initialPosition: null,
+          initialIndex: null,
+          preload: true);
 
-      // Load a URL
+      print("Source set: $path");
 
-      // await widget.player.setUrl(// Load a URL
-      //     'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
-      // await widget.player.setLoopMode(LoopMode.all);
+      await widget.player.load();
+      print(widget.player.position);
+      print(widget.player.duration);
+      print("Song loaded " + widget.player.toString());
+
       widget.player.play(); // Play without waiting for completion
+
+      print(widget.player.position);
+      print(widget.player.duration);
+      loading = false;
       playing = true;
     } finally {
       if (protected) {
@@ -100,9 +125,17 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
   }
 
-  void stop() async {
-    playing = false;
-    await widget.player.stop();
+  void pause() async {
+    if (!playing) {
+      return;
+    }
+    if (paused) {
+      widget.player.play();
+      paused = false;
+    } else {
+      await widget.player.pause();
+      paused = true;
+    }
   }
 
   void downvoteskip() async {
@@ -152,16 +185,30 @@ class _SongDataFrameState extends State<SongDataFrame> {
     return Center(
       child: Column(
         children: [
-          Text(song.title != "" ? song.title : song.filename,
-              style: const TextStyle(fontSize: 30)),
-          Text(song.artist, style: const TextStyle(fontSize: 30)),
-          Text(song.album, style: const TextStyle(fontSize: 30)),
+          TextScroll(
+            song.title != "" ? song.title : song.filename,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
+          ),
+          TextScroll(
+            song.album,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
+          ),
+          TextScroll(
+            song.artist,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
+          ),
           Text(
               "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
               style: const TextStyle(fontSize: 30)),
           ProgressBar(
             progress: widget.player.position,
-            total: widget.player.duration ?? const Duration(days: 0),
+            total: widget.player.duration ?? const Duration(),
             onSeek: (duration) {
               print('User selected a new time: $duration');
               widget.player.seek(duration);
@@ -177,7 +224,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
                     minWidth: 150,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
-                    child: Text(widget.player.playing ? "⏭️" : "▶️",
+                    child: Text(getPlayButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
               Container(
@@ -185,9 +232,10 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   child: MaterialButton(
                     height: 175,
                     minWidth: 150,
-                    onPressed: stop,
+                    onPressed: playing ? pause : null,
                     color: Colors.blueAccent.shade100,
-                    child: const Text("⏹️", style: TextStyle(fontSize: 40)),
+                    child: Text(paused ? "▶️" : "⏸︎",
+                        style: const TextStyle(fontSize: 40)),
                   )),
             ],
           ),
@@ -275,5 +323,16 @@ class _SongDataFrameState extends State<SongDataFrame> {
     // stop();
     // await play(4666);
     // getFreeSpace();
+  }
+
+  String getPlayButtonText() {
+    if (loading) {
+      // return '◌';
+      return '⏰';
+    } else if (playing) {
+      return '⏭️';
+    } else {
+      return "▶️";
+    }
   }
 }

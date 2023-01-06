@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/background_live.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-import 'package:flutter_background/flutter_background.dart';
+// import 'package:flutter_background/flutter_background.dart';
 import 'package:http/http.dart' as http;
 
 void main() async {
@@ -18,16 +17,17 @@ void main() async {
   // Open the database once to initialize upgrades
   await getDbConnection();
 
-  if (!await initKeepAlive()) {
-    Fluttertoast.showToast(
-        msg: "Kann das Background-Keepalive nicht garantieren!",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.SNACKBAR,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red.shade300,
-        textColor: Colors.black,
-        fontSize: 16.0);
-  }
+  initKeepAlive();
+  // if (!await initKeepAlive()) {
+  //   Fluttertoast.showToast(
+  //       msg: "Kann das Background-Keepalive nicht garantieren!",
+  //       toastLength: Toast.LENGTH_LONG,
+  //       gravity: ToastGravity.SNACKBAR,
+  //       timeInSecForIosWeb: 1,
+  //       backgroundColor: Colors.red.shade300,
+  //       textColor: Colors.black,
+  //       fontSize: 16.0);
+  // }
 
   runApp(const MyApp(
     key: Key("main"),
@@ -87,15 +87,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   _MyHomePageState();
   final AudioPlayer player = AudioPlayer();
-
-  final androidConfig = const FlutterBackgroundAndroidConfig(
-    notificationTitle: "flutter_background example app",
-    notificationText:
-        "Background notification for keeping the example app running in the background",
-    notificationImportance: AndroidNotificationImportance.Max,
-    notificationIcon:
-        AndroidResource(name: 'background_icon', defType: 'drawable'),
-  );
 
   @override
   Widget build(BuildContext context) {
