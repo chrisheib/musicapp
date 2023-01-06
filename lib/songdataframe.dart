@@ -3,7 +3,6 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
@@ -32,6 +31,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
   bool playing = false;
   bool loading = false;
   bool paused = false;
+  DateTime lastSongChange = DateTime.now();
   final m = Mutex();
 
   _SongDataFrameState() {
@@ -52,8 +52,11 @@ class _SongDataFrameState extends State<SongDataFrame> {
             widget.player.position >=
                 (widget.player.duration ?? const Duration(days: 1 << 63))) {
           if (playing) {
-            print("End of song, playing next one.");
-            await play(protected: false);
+            if (DateTime.now().difference(lastSongChange) >
+                const Duration(seconds: 1)) {
+              print("End of song, playing next one.");
+              await play(protected: false);
+            }
           }
         }
       });
@@ -82,7 +85,6 @@ class _SongDataFrameState extends State<SongDataFrame> {
         loading = true;
         setState(() {});
 
-        // var songid = song.id;
         if (song.downloaded != 1) {
           await song.download();
         }
@@ -94,7 +96,6 @@ class _SongDataFrameState extends State<SongDataFrame> {
       var path = await getSongDir(song.id.toString());
       print("Setting source: $path");
 
-      // await widget.player.setFilePath(path);
       await widget.player.setAudioSource(
           AudioSource.uri(
             Uri.file(path),
@@ -104,19 +105,11 @@ class _SongDataFrameState extends State<SongDataFrame> {
           initialIndex: null,
           preload: true);
 
-      print("Source set: $path");
-
-      await widget.player.load();
-      print(widget.player.position);
-      print(widget.player.duration);
-      print("Song loaded " + widget.player.toString());
-
       widget.player.play(); // Play without waiting for completion
 
-      print(widget.player.position);
-      print(widget.player.duration);
       loading = false;
       playing = true;
+      lastSongChange = DateTime.now();
     } finally {
       if (protected) {
         m.release();
@@ -204,16 +197,22 @@ class _SongDataFrameState extends State<SongDataFrame> {
             intervalSpaces: 15,
           ),
           Text(
-              "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
+              loading
+                  ? "00:00 / --:--"
+                  : "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
               style: const TextStyle(fontSize: 30)),
-          ProgressBar(
-            progress: widget.player.position,
-            total: widget.player.duration ?? const Duration(),
-            onSeek: (duration) {
-              print('User selected a new time: $duration');
-              widget.player.seek(duration);
-            },
-          ),
+          Container(
+              margin: const EdgeInsets.all(5.0),
+              child: ProgressBar(
+                progress: widget.player.position,
+                total: loading
+                    ? const Duration()
+                    : widget.player.duration ?? const Duration(),
+                onSeek: (duration) {
+                  print('User selected a new time: $duration');
+                  widget.player.seek(duration);
+                },
+              )),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
