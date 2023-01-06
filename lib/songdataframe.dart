@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:musicapp/database.dart';
 import 'package:musicapp/path.dart';
 import 'package:sqflite/sqflite.dart';
-
+import 'package:mutex/mutex.dart';
 import 'song.dart';
 
 String printDuration(Duration duration) {
@@ -28,6 +30,7 @@ class SongDataFrame extends StatefulWidget {
 class _SongDataFrameState extends State<SongDataFrame> {
   late Song song;
   bool playing = false;
+  final m = Mutex();
 
   _SongDataFrameState() {
     song = Song(
@@ -38,43 +41,64 @@ class _SongDataFrameState extends State<SongDataFrame> {
         length: "",
         filename: "",
         rating: 0,
-        downloaded: false);
-    Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
+        downloaded: 0);
+    Timer.periodic(const Duration(milliseconds: 150), (Timer t) async {
       // print(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
-      if (playing &&
-          widget.player.position >=
-              (widget.player.duration ?? const Duration(days: 1 << 63))) {
-        if (playing) {
-          await play();
+      await m.protect(() async {
+        if (playing &&
+            widget.player.position >=
+                (widget.player.duration ?? const Duration(days: 1 << 63))) {
+          if (playing) {
+            await play(protected: false);
+          }
         }
-      }
+      });
+
       setState(() {});
     });
   }
 
-  Future<void> play([int id = -1]) async {
-    await widget.player.stop();
-    if (id == -1) {
-      song = await Song.fetchRandom(widget.db);
-    } else {
-      song = await Song.fetch(id);
+  Future<void> play({int id = -1, bool protected = true}) async {
+    if (protected) {
+      await m.acquire();
+      print("acquire lock");
     }
-    // var songid = song.id;
-    if (!song.downloaded) {
-      await song.download();
+
+    try {
+      await widget.player.stop();
+      do {
+        if (id == -1) {
+          song = await Song.fetchRandom(widget.db);
+        } else {
+          song = await Song.fetch(id);
+        }
+        // var songid = song.id;
+        if (song.downloaded != 1) {
+          await song.download();
+        }
+        if (song.downloaded != 1) {
+          print("Song not downloaded, retry.");
+        }
+      } while (song.downloaded != 1);
+      var path = await getSongDir(song.id.toString());
+      print(path);
+
+      await widget.player.setFilePath(path);
+
+      // Load a URL
+
+      // await widget.player.setUrl(// Load a URL
+      //     'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
+      // await widget.player.setLoopMode(LoopMode.all);
+      widget.player.play(); // Play without waiting for completion
+      playing = true;
+    } finally {
+      if (protected) {
+        m.release();
+        print("release lock");
+      }
     }
-    var path = await getSongDir(song.id.toString());
-    print(path);
-    await widget.player.setFilePath(path);
-
-    // Load a URL
-
-    // await widget.player.setUrl(// Load a URL
-    //     'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
-    // await widget.player.setLoopMode(LoopMode.all);
-    widget.player.play(); // Play without waiting for completion
-    playing = true;
   }
 
   void stop() async {
@@ -136,6 +160,14 @@ class _SongDataFrameState extends State<SongDataFrame> {
           Text(
               "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
               style: const TextStyle(fontSize: 30)),
+          ProgressBar(
+            progress: widget.player.position,
+            total: widget.player.duration ?? const Duration(days: 0),
+            onSeek: (duration) {
+              print('User selected a new time: $duration');
+              widget.player.seek(duration);
+            },
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -214,14 +246,20 @@ class _SongDataFrameState extends State<SongDataFrame> {
   }
 
   void listSongs() async {
-    // final List<Map<String, dynamic>> maps = await db.query('songs');
-    // var songs = maps.map((e) => {print(e), Song.fromJson(e)});
-    // for (var s in songs) {
-    //   print(s);
-    // }
+    var db = await getDbConnection();
+    final List<Map<String, dynamic>> maps =
+        await db.query('songs', orderBy: "rating DESC", limit: 100);
+    var songs = maps.map((e) {
+      return Song.fromJson(e);
+    });
+    for (Song s in songs) {
+      print(s);
+      await s.download();
+    }
     // var s = await Song.fetchRandom(widget.db);
     // await s.download();
-    stop();
-    await play(4666);
+    // stop();
+    // await play(4666);
+    // getFreeSpace();
   }
 }

@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
 import 'package:musicapp/network.dart';
 import 'package:musicapp/path.dart';
@@ -30,7 +34,7 @@ class Song {
   final String length;
   int rating;
   bool upvoted = false;
-  bool downloaded = false;
+  int downloaded;
 
   Song(
       {required this.id,
@@ -51,11 +55,12 @@ class Song {
       length: json['length'] ?? "--:--",
       filename: json['filename'] ?? "",
       rating: json['rating'] ?? 0,
-      downloaded: json['downloaded'] ?? false,
+      downloaded: json['downloaded'] ?? 0,
     );
   }
 
   static Future<Song> fetchRandom(Database db) async {
+    print(await isConnected());
     if (await isConnected()) {
       var response =
           await http.get(Uri.parse('https://music.stschiff.de/random_id'));
@@ -70,10 +75,31 @@ class Song {
         throw Exception('Failed to fetch random');
       }
     } else {
-      final List<Map<String, dynamic>> songlistRes = await db.query('songs');
-      var randSongId = Random().nextInt(songlistRes.length);
-      var song = Song.fromJson(songlistRes[randSongId]);
-      return song;
+      bool isDownloaded = false;
+      Song? song;
+      while (!isDownloaded) {
+        final List<Map<String, dynamic>> songlistRes =
+            await db.query('songs', where: "downloaded = true");
+        if (songlistRes.isEmpty) {
+          Fluttertoast.showToast(
+              msg: "Scheinbar sind keine Songs heruntergeladen!",
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.SNACKBAR,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red.shade300,
+              textColor: Colors.black,
+              fontSize: 16.0);
+          throw Exception("Scheinbar sind keine Songs heruntergeladen!");
+        }
+        var randSongId = Random().nextInt(songlistRes.length);
+        song = Song.fromJson(songlistRes[randSongId]);
+        isDownloaded = await song.isDownloaded();
+        if (!isDownloaded) {
+          await db.execute(
+              "UPDATE songs SET donwloaded = false WHERE id = ?", [song.id]);
+        }
+      }
+      return song!;
     }
   }
 
@@ -84,7 +110,7 @@ class Song {
       // If the server did return a 200 OK response,
       // then parse the JSON.
       var s = Song.fromJson(jsonDecode(response.body));
-      // print(s);
+      s.downloaded = await s.isDownloaded() ? 1 : 0;
       return s;
     } else {
       // If the server did not return a 200 OK response,
@@ -117,10 +143,19 @@ class Song {
 
   Future<bool> download() async {
     print("Start download $id");
-    downloaded = await downloadFile(
-        'https://music.stschiff.de/songs/$id', await getSongDir(), "$id.mp3");
+    downloaded = (await downloadFile('https://music.stschiff.de/songs/$id',
+            await getSongDir(), "$id.mp3"))
+        ? 1
+        : 0;
     print("Finished download $id: $downloaded");
-    return downloaded;
+    var db = await getDbConnection();
+    await db.execute(
+        "UPDATE songs set downloaded = ? where id = ?", [downloaded, id]);
+    return downloaded == 1;
+  }
+
+  Future<bool> isDownloaded() async {
+    return await File(await getSongDir(id.toString())).exists();
   }
 
   Map<String, dynamic> toMap() {

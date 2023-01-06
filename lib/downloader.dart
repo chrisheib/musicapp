@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:musicapp/disk_size.dart';
+import 'package:musicapp/network.dart';
 import 'package:path/path.dart';
 import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,7 +12,27 @@ Future<bool> downloadFile(String url, String dir, String filename) async {
   print(dir);
   print(filename);
 
+  if (await File(join(dir, filename)).exists()) {
+    return true;
+  }
+
   await Permission.storage.request();
+  if (!await spaceAvailable()) {
+    return false;
+  }
+
+  if (!await isUsingFastConnection()) {
+    return false;
+  }
+
+  Fluttertoast.showToast(
+      msg: "Beginne Donwload $filename!",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.SNACKBAR,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.blue,
+      textColor: Colors.black,
+      fontSize: 16.0);
 
   var file = await FileDownloader.downloadFile(
       url: url,
@@ -25,8 +49,19 @@ Future<bool> downloadFile(String url, String dir, String filename) async {
 
   print("after done");
 
-  // await moveFile(file!, join(dir, filename));
-  return await File(join(dir, filename)).exists();
+  await moveFile(file!, join(dir, filename));
+  bool success = await File(join(dir, filename)).exists();
+  if (success) {
+    Fluttertoast.showToast(
+        msg: "Song $filename heruntergeladen!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.blue,
+        textColor: Colors.black,
+        fontSize: 16.0);
+  }
+  return success;
 }
 
 Future<File> moveFile(File sourceFile, String newPath) async {
