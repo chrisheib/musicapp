@@ -293,9 +293,9 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   void listSongs() async {
     var db = await getDbConnection();
-    String number_string = await promptNumber(context) ?? "0";
+    String numberString = await promptNumber(context) ?? "0";
     int number = int.parse(
-      number_string,
+      numberString,
       onError: (source) {
         Fluttertoast.showToast(
             msg: "Du Tröte musst schon eine Nummer eingeben!",
@@ -305,7 +305,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
             backgroundColor: Colors.red.shade300,
             textColor: Colors.black,
             fontSize: 16.0);
-        throw Exception("Number expected, got $number_string");
+        throw Exception("Number expected, got $numberString");
       },
     );
     final List<Map<String, dynamic>> maps =
