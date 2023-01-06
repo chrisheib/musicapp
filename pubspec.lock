@@ -37,12 +37,12 @@ packages:
     source: hosted
     version: "0.1.1"
   audio_session:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: audio_session
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.10"
+    version: "0.1.13"
   audio_video_progress_bar:
     dependency: "direct main"
     description:

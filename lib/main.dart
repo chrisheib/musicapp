@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:audio_session/audio_session.dart';
 import 'package:musicapp/background_live.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-// import 'package:flutter_background/flutter_background.dart';
 import 'package:http/http.dart' as http;
 
 void main() async {
@@ -18,16 +18,9 @@ void main() async {
   await getDbConnection();
 
   initKeepAlive();
-  // if (!await initKeepAlive()) {
-  //   Fluttertoast.showToast(
-  //       msg: "Kann das Background-Keepalive nicht garantieren!",
-  //       toastLength: Toast.LENGTH_LONG,
-  //       gravity: ToastGravity.SNACKBAR,
-  //       timeInSecForIosWeb: 1,
-  //       backgroundColor: Colors.red.shade300,
-  //       textColor: Colors.black,
-  //       fontSize: 16.0);
-  // }
+
+  final session = await AudioSession.instance;
+  await session.configure(const AudioSessionConfiguration.music());
 
   runApp(const MyApp(
     key: Key("main"),

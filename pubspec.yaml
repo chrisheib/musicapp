@@ -53,6 +53,7 @@ dependencies:
   mutex: ^3.0.1
   audio_video_progress_bar: ^0.11.0
   text_scroll: ^0.1.2
+  audio_session: ^0.1.13
 
 dev_dependencies:
   flutter_test:
