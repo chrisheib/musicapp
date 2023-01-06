@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/database.dart';
+import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:mutex/mutex.dart';
 import 'song.dart';
 
@@ -17,10 +17,8 @@ String printDuration(Duration duration) {
 }
 
 class SongDataFrame extends StatefulWidget {
-  final Database db;
   final AudioPlayer player;
-  const SongDataFrame(
-      {required Key key, required this.player, required this.db})
+  const SongDataFrame({required Key key, required this.player})
       : super(key: key);
 
   @override
@@ -69,7 +67,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
       await widget.player.stop();
       do {
         if (id == -1) {
-          song = await Song.fetchRandom(widget.db);
+          var db = await getDbConnection();
+          song = await Song.fetchRandom(db);
         } else {
           song = await Song.fetch(id);
         }
@@ -247,8 +246,23 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   void listSongs() async {
     var db = await getDbConnection();
+    String number_string = await promptNumber(context) ?? "0";
+    int number = int.parse(
+      number_string,
+      onError: (source) {
+        Fluttertoast.showToast(
+            msg: "Du Tröte musst schon eine Nummer eingeben!",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.SNACKBAR,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red.shade300,
+            textColor: Colors.black,
+            fontSize: 16.0);
+        throw Exception("Number expected, got $number_string");
+      },
+    );
     final List<Map<String, dynamic>> maps =
-        await db.query('songs', orderBy: "rating DESC", limit: 100);
+        await db.query('songs', orderBy: "rating DESC", limit: number);
     var songs = maps.map((e) {
       return Song.fromJson(e);
     });
