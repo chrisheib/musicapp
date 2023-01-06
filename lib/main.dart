@@ -1,42 +1,48 @@
 import 'dart:convert';
+import 'package:musicapp/background_live.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-import 'package:flutter_background/flutter_background.dart';
+// import 'package:flutter_background/flutter_background.dart';
 import 'package:http/http.dart' as http;
 
 void main() async {
   // https://docs.flutter.dev/cookbook/persistence/sqlite
 
   // Avoid errors caused by flutter upgrade.
-  // Importing 'package:flutter/widgets.dart' is required.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Open the database and store the reference.
-  var database = await getDbConnection();
+  // Open the database once to initialize upgrades
+  await getDbConnection();
 
-  runApp(MyApp(
-    key: const Key("main"),
-    db: database,
+  initKeepAlive();
+  // if (!await initKeepAlive()) {
+  //   Fluttertoast.showToast(
+  //       msg: "Kann das Background-Keepalive nicht garantieren!",
+  //       toastLength: Toast.LENGTH_LONG,
+  //       gravity: ToastGravity.SNACKBAR,
+  //       timeInSecForIosWeb: 1,
+  //       backgroundColor: Colors.red.shade300,
+  //       textColor: Colors.black,
+  //       fontSize: 16.0);
+  // }
+
+  runApp(const MyApp(
+    key: Key("main"),
   ));
 }
 
 class MyApp extends StatefulWidget {
-  final Database db;
-  const MyApp({super.key, required this.db});
+  const MyApp({super.key});
 
   @override
-  // ignore: no_logic_in_create_state
-  State<MyApp> createState() => _MyAppState(db: db);
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  final Database db;
-  _MyAppState({required this.db});
+  _MyAppState();
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,17 +59,15 @@ class _MyAppState extends State<MyApp> {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(
+      home: const MyHomePage(
         title: 'Flutter Demo Home Page',
-        db: db,
       ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  final Database db;
-  const MyHomePage({super.key, required this.title, required this.db});
+  const MyHomePage({super.key, required this.title});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -77,23 +81,12 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  // ignore: no_logic_in_create_state
-  State<MyHomePage> createState() => _MyHomePageState(db: db);
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  _MyHomePageState({required this.db});
-  final Database db;
+  _MyHomePageState();
   final AudioPlayer player = AudioPlayer();
-
-  final androidConfig = const FlutterBackgroundAndroidConfig(
-    notificationTitle: "flutter_background example app",
-    notificationText:
-        "Background notification for keeping the example app running in the background",
-    notificationImportance: AndroidNotificationImportance.Max,
-    notificationIcon:
-        AndroidResource(name: 'background_icon', defType: 'drawable'),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +98,6 @@ class _MyHomePageState extends State<MyHomePage> {
             SongDataFrame(
               key: const Key("song1"),
               player: player,
-              db: db,
             ),
             MaterialButton(
                 color: Colors.blueAccent.shade100,
@@ -131,6 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
       for (var s in songsJson) {
         songs.add(Song.fromJson(s));
         // print(s);
+        var db = await getDbConnection();
         await songs.last.saveToDb(db);
       }
       print("done!");

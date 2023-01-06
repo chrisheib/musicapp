@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
 import 'package:musicapp/network.dart';
@@ -176,6 +177,15 @@ class Song {
       'songs',
       toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  MediaItem toMediaItem() {
+    return MediaItem(
+      id: id.toString(),
+      album: album,
+      title: title,
+      artist: artist,
     );
   }
 }

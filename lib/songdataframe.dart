@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/database.dart';
+import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:mutex/mutex.dart';
+import 'package:text_scroll/text_scroll.dart';
 import 'song.dart';
 
 String printDuration(Duration duration) {
@@ -17,10 +18,8 @@ String printDuration(Duration duration) {
 }
 
 class SongDataFrame extends StatefulWidget {
-  final Database db;
   final AudioPlayer player;
-  const SongDataFrame(
-      {required Key key, required this.player, required this.db})
+  const SongDataFrame({required Key key, required this.player})
       : super(key: key);
 
   @override
@@ -30,6 +29,9 @@ class SongDataFrame extends StatefulWidget {
 class _SongDataFrameState extends State<SongDataFrame> {
   late Song song;
   bool playing = false;
+  bool loading = false;
+  bool paused = false;
+  DateTime lastSongChange = DateTime.now();
   final m = Mutex();
 
   _SongDataFrameState() {
@@ -50,7 +52,11 @@ class _SongDataFrameState extends State<SongDataFrame> {
             widget.player.position >=
                 (widget.player.duration ?? const Duration(days: 1 << 63))) {
           if (playing) {
-            await play(protected: false);
+            if (DateTime.now().difference(lastSongChange) >
+                const Duration(seconds: 1)) {
+              print("End of song, playing next one.");
+              await play(protected: false);
+            }
           }
         }
       });
@@ -66,33 +72,44 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
 
     try {
+      await widget.player.seek(const Duration());
       await widget.player.stop();
+      // await widget.player.setAudioSource(AudioSource.);
       do {
         if (id == -1) {
-          song = await Song.fetchRandom(widget.db);
+          var db = await getDbConnection();
+          song = await Song.fetchRandom(db);
         } else {
           song = await Song.fetch(id);
         }
-        // var songid = song.id;
+        loading = true;
+        setState(() {});
+
         if (song.downloaded != 1) {
           await song.download();
         }
+
         if (song.downloaded != 1) {
           print("Song not downloaded, retry.");
         }
       } while (song.downloaded != 1);
       var path = await getSongDir(song.id.toString());
-      print(path);
+      print("Setting source: $path");
 
-      await widget.player.setFilePath(path);
+      await widget.player.setAudioSource(
+          AudioSource.uri(
+            Uri.file(path),
+            tag: song.toMediaItem(),
+          ),
+          initialPosition: null,
+          initialIndex: null,
+          preload: true);
 
-      // Load a URL
-
-      // await widget.player.setUrl(// Load a URL
-      //     'https://music.stschiff.de/songs/$songid'); // Schemes: (https: | file: | asset: )
-      // await widget.player.setLoopMode(LoopMode.all);
       widget.player.play(); // Play without waiting for completion
+
+      loading = false;
       playing = true;
+      lastSongChange = DateTime.now();
     } finally {
       if (protected) {
         m.release();
@@ -101,9 +118,17 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
   }
 
-  void stop() async {
-    playing = false;
-    await widget.player.stop();
+  void pause() async {
+    if (!playing) {
+      return;
+    }
+    if (paused) {
+      widget.player.play();
+      paused = false;
+    } else {
+      await widget.player.pause();
+      paused = true;
+    }
   }
 
   void downvoteskip() async {
@@ -153,21 +178,41 @@ class _SongDataFrameState extends State<SongDataFrame> {
     return Center(
       child: Column(
         children: [
-          Text(song.title != "" ? song.title : song.filename,
-              style: const TextStyle(fontSize: 30)),
-          Text(song.artist, style: const TextStyle(fontSize: 30)),
-          Text(song.album, style: const TextStyle(fontSize: 30)),
-          Text(
-              "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
-              style: const TextStyle(fontSize: 30)),
-          ProgressBar(
-            progress: widget.player.position,
-            total: widget.player.duration ?? const Duration(days: 0),
-            onSeek: (duration) {
-              print('User selected a new time: $duration');
-              widget.player.seek(duration);
-            },
+          TextScroll(
+            song.title != "" ? song.title : song.filename,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
           ),
+          TextScroll(
+            song.album,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
+          ),
+          TextScroll(
+            song.artist,
+            style: const TextStyle(fontSize: 30),
+            pauseBetween: const Duration(milliseconds: 2500),
+            intervalSpaces: 15,
+          ),
+          Text(
+              loading
+                  ? "00:00 / --:--"
+                  : "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
+              style: const TextStyle(fontSize: 30)),
+          Container(
+              margin: const EdgeInsets.all(5.0),
+              child: ProgressBar(
+                progress: widget.player.position,
+                total: loading
+                    ? const Duration()
+                    : widget.player.duration ?? const Duration(),
+                onSeek: (duration) {
+                  print('User selected a new time: $duration');
+                  widget.player.seek(duration);
+                },
+              )),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -178,7 +223,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
                     minWidth: 150,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
-                    child: Text(widget.player.playing ? "⏭️" : "▶️",
+                    child: Text(getPlayButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
               Container(
@@ -186,9 +231,10 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   child: MaterialButton(
                     height: 175,
                     minWidth: 150,
-                    onPressed: stop,
+                    onPressed: playing ? pause : null,
                     color: Colors.blueAccent.shade100,
-                    child: const Text("⏹️", style: TextStyle(fontSize: 40)),
+                    child: Text(paused ? "▶️" : "⏸︎",
+                        style: const TextStyle(fontSize: 40)),
                   )),
             ],
           ),
@@ -247,8 +293,23 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   void listSongs() async {
     var db = await getDbConnection();
+    String number_string = await promptNumber(context) ?? "0";
+    int number = int.parse(
+      number_string,
+      onError: (source) {
+        Fluttertoast.showToast(
+            msg: "Du Tröte musst schon eine Nummer eingeben!",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.SNACKBAR,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red.shade300,
+            textColor: Colors.black,
+            fontSize: 16.0);
+        throw Exception("Number expected, got $number_string");
+      },
+    );
     final List<Map<String, dynamic>> maps =
-        await db.query('songs', orderBy: "rating DESC", limit: 100);
+        await db.query('songs', orderBy: "rating DESC", limit: number);
     var songs = maps.map((e) {
       return Song.fromJson(e);
     });
@@ -261,5 +322,16 @@ class _SongDataFrameState extends State<SongDataFrame> {
     // stop();
     // await play(4666);
     // getFreeSpace();
+  }
+
+  String getPlayButtonText() {
+    if (loading) {
+      // return '◌';
+      return '⏰';
+    } else if (playing) {
+      return '⏭️';
+    } else {
+      return "▶️";
+    }
   }
 }
