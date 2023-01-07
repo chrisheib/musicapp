@@ -96,10 +96,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 color: Colors.blueAccent.shade100,
                 onPressed: recreateSongDatabase,
                 child: const Text("recreate song database")),
-            // MaterialButton(
-            //     color: Colors.blueAccent.shade100,
-            //     onPressed: listSongs,
-            //     child: const Text("alles nur geklaut")),
           ],
         ),
       ),
@@ -125,16 +121,5 @@ class _MyHomePageState extends State<MyHomePage> {
       // then throw an exception.
       throw Exception('Failed to load album');
     }
-  }
-
-  void listSongs() async {
-    // final List<Map<String, dynamic>> maps = await db.query('songs');
-    // var songs = maps.map((e) => {print(e), Song.fromJson(e)});
-    // for (var s in songs) {
-    //   print(s);
-    // }
-    // var s = await Song.fetchRandom(widget.db);
-    // await s.download();
-    // widget.
   }
 }
