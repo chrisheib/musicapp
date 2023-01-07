@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
@@ -60,11 +60,19 @@ class Song {
     );
   }
 
-  static Future<Song> fetchRandom(Database db) async {
-    print(await isConnected());
+  static Future<Song> fetchRandom(Database db, {double? scale}) async {
+    // print(await isConnected());
     if (await isConnected()) {
-      var response =
-          await http.get(Uri.parse('https://music.stschiff.de/random_id'));
+      Response response;
+      if (scale == null) {
+        print("fetching with default scaling");
+        response = await get(Uri.parse('https://music.stschiff.de/random_id'));
+      } else {
+        var scaleStr = scale.toStringAsFixed(1);
+        print("fetching with scaling $scaleStr");
+        response = await get(
+            Uri.parse('https://music.stschiff.de/random_id/$scaleStr'));
+      }
       if (response.statusCode == 200) {
         // If the server did return a 200 OK response,
         // then parse the JSON.
@@ -106,7 +114,7 @@ class Song {
 
   static Future<Song> fetch(int id) async {
     var response =
-        await http.get(Uri.parse('https://music.stschiff.de/songdata/$id'));
+        await get(Uri.parse('https://music.stschiff.de/songdata/$id'));
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
@@ -121,8 +129,7 @@ class Song {
   }
 
   Future<bool> upvote() async {
-    var response =
-        await http.get(Uri.parse('https://music.stschiff.de/upvote/$id'));
+    var response = await get(Uri.parse('https://music.stschiff.de/upvote/$id'));
     var success = response.statusCode == 200;
     if (success) {
       upvoted = true;
@@ -133,7 +140,7 @@ class Song {
 
   Future<bool> downvote() async {
     var response =
-        await http.get(Uri.parse('https://music.stschiff.de/downvote/$id'));
+        await get(Uri.parse('https://music.stschiff.de/downvote/$id'));
     var success = response.statusCode == 200;
     if (success) {
       upvoted = false;

@@ -42,14 +42,58 @@ Future<Database> getDbConnection() async {
             rating NUMBER
           )""",
         );
+        await db.execute("ALTER TABLE songs ADD COLUMN downloaded INT");
       }
       if (oldVersion <= 6) {
         print("update 6");
-        await db.execute("ALTER TABLE songs ADD COLUMN downloaded INT");
+        await db.execute("""CREATE TABLE config(
+            ckey TEXT PRIMARY KEY,
+            value_text TEXT,
+            value_num REAL
+          )""");
       }
     },
     // Set the version. This executes the onCreate function and provides a
     // path to perform database upgrades and downgrades.
-    version: 6,
+    version: 7,
   );
+}
+
+Future<String?> getConfigStr(String key) async {
+  var db = await getDbConnection();
+  var res = await db.query("config", where: "ckey = ?", whereArgs: [key]);
+
+  if (res.isEmpty) {
+    return null;
+  }
+  if (res[0]["value_text"] == null) {
+    return null;
+  }
+  return res[0]["value_text"].toString();
+}
+
+Future<double?> getConfigDouble(String key) async {
+  var db = await getDbConnection();
+  var res = await db.query("config", where: "ckey = ?", whereArgs: [key]);
+  if (res.isEmpty) {
+    return null;
+  }
+  if (res[0]["value_num"] == null) {
+    return null;
+  }
+  return double.tryParse(res[0]["value_num"].toString());
+}
+
+void setConfigDouble(String key, double value) async {
+  var db = await getDbConnection();
+  await db.execute(
+      """INSERT OR REPLACE INTO config (ckey, value_num) values (?, ?)""",
+      [key, value]);
+}
+
+void setConfigStr(String key, String value) async {
+  var db = await getDbConnection();
+  await db.execute(
+      """INSERT OR REPLACE INTO config (ckey, value_text) values (?, ?)""",
+      [key, value]);
 }

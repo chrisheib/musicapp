@@ -31,6 +31,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
   bool playing = false;
   bool loading = false;
   bool paused = false;
+  double? ratingScale;
+  double volume = 1;
   DateTime lastSongChange = DateTime.now();
   final m = Mutex();
 
@@ -48,6 +50,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
       // print(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       await m.protect(() async {
+        ratingScale ??= await getConfigDouble("rating_scale") ?? 2.5;
         if (playing &&
             widget.player.position >=
                 (widget.player.duration ?? const Duration(days: 1 << 63))) {
@@ -78,7 +81,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
       do {
         if (id == -1) {
           var db = await getDbConnection();
-          song = await Song.fetchRandom(db);
+          song = await Song.fetchRandom(db, scale: ratingScale);
         } else {
           song = await Song.fetch(id);
         }
@@ -283,16 +286,57 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   style: const TextStyle(fontSize: 40)),
             ],
           ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Scale: ${(ratingScale ?? 3).toStringAsFixed(1)}",
+                  style: const TextStyle(fontSize: 25)),
+              Slider(
+                value: ratingScale ?? 3,
+                min: 0.5,
+                max: 4,
+                divisions: 35,
+                label: (ratingScale ?? 3).toStringAsFixed(1),
+                onChanged: (double value) {
+                  setState(() {
+                    ratingScale = value;
+                    setConfigDouble("rating_scale", value);
+                  });
+                },
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Volume: ${(volume).toStringAsFixed(2)}",
+                  style: const TextStyle(fontSize: 25)),
+              Slider(
+                value: volume,
+                min: 0,
+                max: 1,
+                divisions: 100,
+                label: (volume).toStringAsFixed(2),
+                onChanged: (double value) {
+                  setState(() {
+                    volume = value;
+                    widget.player.setVolume(volume * volume);
+                  });
+                },
+              ),
+            ],
+          ),
           MaterialButton(
-              color: Colors.blueAccent.shade100,
-              onPressed: listSongs,
-              child: const Text("alles nur geklaut")),
+            color: Colors.blueAccent.shade100,
+            onPressed: downloadNSongs,
+            child: const Text("Download N songs"),
+          ),
         ],
       ),
     );
   }
 
-  void listSongs() async {
+  void downloadNSongs() async {
     var db = await getDbConnection();
     String numberString = await promptNumber(context) ?? "0";
     int number = int.parse(
@@ -318,11 +362,6 @@ class _SongDataFrameState extends State<SongDataFrame> {
       print(s);
       await s.download();
     }
-    // var s = await Song.fetchRandom(widget.db);
-    // await s.download();
-    // stop();
-    // await play(4666);
-    // getFreeSpace();
   }
 
   String getPlayButtonText() {

@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:http/http.dart' as http;
 
 enum ConnectionStatus {
   none,
@@ -26,6 +27,13 @@ Future<ConnectionStatus> getConnectionStatus() async {
   } else {
     cType = "none";
     out = ConnectionStatus.none;
+  }
+
+  if (out != ConnectionStatus.none) {
+    var response = await http.get(Uri.parse('https://music.stschiff.de/ping'));
+    if (response.statusCode != 200 || response.body != "pong") {
+      out = ConnectionStatus.none;
+    }
   }
 
   print(cType); //Output: Wifi Network
