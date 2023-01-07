@@ -109,6 +109,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
       loading = false;
       playing = true;
+      paused = false;
       lastSongChange = DateTime.now();
     } finally {
       if (protected) {
