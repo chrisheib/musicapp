@@ -8,6 +8,7 @@ import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
 import 'package:musicapp/network.dart';
 import 'package:musicapp/path.dart';
+import 'package:musicapp/random.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:math';
 
@@ -83,31 +84,7 @@ class Song {
         throw Exception('Failed to fetch random');
       }
     } else {
-      bool isDownloaded = false;
-      Song? song;
-      while (!isDownloaded) {
-        final List<Map<String, dynamic>> songlistRes =
-            await db.query('songs', where: "downloaded = true");
-        if (songlistRes.isEmpty) {
-          Fluttertoast.showToast(
-              msg: "Scheinbar sind keine Songs heruntergeladen!",
-              toastLength: Toast.LENGTH_SHORT,
-              gravity: ToastGravity.SNACKBAR,
-              timeInSecForIosWeb: 1,
-              backgroundColor: Colors.red.shade300,
-              textColor: Colors.black,
-              fontSize: 16.0);
-          throw Exception("Scheinbar sind keine Songs heruntergeladen!");
-        }
-        var randSongId = Random().nextInt(songlistRes.length);
-        song = Song.fromJson(songlistRes[randSongId]);
-        isDownloaded = await song.isDownloaded();
-        if (!isDownloaded) {
-          await db.execute(
-              "UPDATE songs SET donwloaded = false WHERE id = ?", [song.id]);
-        }
-      }
-      return song!;
+      return await localRandom(scale ?? 3);
     }
   }
 
@@ -180,6 +157,14 @@ class Song {
 
   Future<void> saveToDb(Database db) async {
     await db.insert(
+      'songs',
+      toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  void saveToDbBatch(Batch db) {
+    db.insert(
       'songs',
       toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:audio_session/audio_session.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get_it/get_it.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
@@ -7,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
 import 'package:http/http.dart' as http;
+import 'package:sqflite/sqflite.dart';
 import 'audio_handler.dart';
 
 void main() async {
@@ -24,6 +27,8 @@ void main() async {
 
   final session = await AudioSession.instance;
   await session.configure(const AudioSessionConfiguration.music());
+
+  initRecreateSongDatabaseTimer();
 
   runApp(const MyApp(
     key: Key("main"),
@@ -104,25 +109,65 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
 
-  void recreateSongDatabase() async {
-    var response = await http.get(Uri.parse('https://music.stschiff.de/songs'));
-    if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      List<dynamic> songsJson = jsonDecode(response.body);
-      List<Song> songs = [];
-      for (var s in songsJson) {
-        songs.add(Song.fromJson(s));
-        // print(s);
-        var db = await getDbConnection();
-        await songs.last.saveToDb(db);
-      }
-      print("done!");
-    } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      throw Exception('Failed to load album');
+void initRecreateSongDatabaseTimer() async {
+  recreateSongDatabase();
+  Timer.periodic(const Duration(minutes: 30), (Timer t) async {
+    recreateSongDatabase();
+  });
+}
+
+void recreateSongDatabase() async {
+  var timestamp_str = await getConfigStr("db_recreate_timestamp") ?? "";
+  var timestamp = DateTime.tryParse(timestamp_str);
+  if (timestamp != null) {
+    if (DateTime.now().difference(timestamp) < const Duration(days: 1)) {
+      print(
+          "Letzter Abgleich ist noch nicht lang genug her. Letzter Abgleich: $timestamp");
+      return;
     }
   }
+  Fluttertoast.showToast(
+      msg: "Beginne Datenbankaktualisierung!",
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.SNACKBAR,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.green.shade300,
+      textColor: Colors.black,
+      fontSize: 16.0);
+
+  print("Start recreateSongDatabase");
+  var response = await http.get(Uri.parse('https://music.stschiff.de/songs'));
+  if (response.statusCode == 200) {
+    // If the server did return a 200 OK response,
+    // then parse the JSON.
+    List<dynamic> songsJson = jsonDecode(response.body);
+    var db = await getDbConnection();
+    var batch = db.batch();
+    batch.execute("delete from songs");
+    for (var s in songsJson) {
+      var song = Song.fromJson(s);
+      // print(song.id);
+      song.downloaded = await song.isDownloaded() ? 1 : 0;
+      song.saveToDbBatch(batch);
+    }
+    await batch.commit();
+    print("done!");
+
+    Fluttertoast.showToast(
+        msg: "Datenbank aktualisiert!",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.green.shade300,
+        textColor: Colors.black,
+        fontSize: 16.0);
+  } else {
+    // If the server did not return a 200 OK response,
+    // then throw an exception.
+    throw Exception('Failed to load album');
+  }
+  setConfigStr("db_recreate_timestamp", DateTime.now().toString());
+  print("End recreateSongDatabase");
 }
