@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:audio_session/audio_session.dart';
-import 'package:musicapp/background_live.dart';
+import 'package:get_it/get_it.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
 import 'package:http/http.dart' as http;
+import 'audio_handler.dart';
 
 void main() async {
   // https://docs.flutter.dev/cookbook/persistence/sqlite
@@ -14,10 +15,12 @@ void main() async {
   // Avoid errors caused by flutter upgrade.
   WidgetsFlutterBinding.ensureInitialized();
 
+  GetIt.I.registerSingleton<SingletonConfig>(SingletonConfig());
+
   // Open the database once to initialize upgrades
   await getDbConnection();
 
-  initKeepAlive();
+  await initAudioServiceHandler();
 
   final session = await AudioSession.instance;
   await session.configure(const AudioSessionConfiguration.music());
@@ -79,7 +82,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   _MyHomePageState();
-  final AudioPlayer player = AudioPlayer();
+  final AudioPlayer player = GetIt.I<AudioPlayer>();
 
   @override
   Widget build(BuildContext context) {

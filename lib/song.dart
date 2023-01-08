@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
 import 'package:musicapp/network.dart';
@@ -191,8 +190,10 @@ class Song {
     return MediaItem(
       id: id.toString(),
       album: album,
-      title: title,
+      title: title.isEmpty ? filename : title,
       artist: artist,
+      rating: const Rating.newThumbRating(false),
+      extras: {"rating": rating},
     );
   }
 }

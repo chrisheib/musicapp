@@ -3,6 +3,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:musicapp/audio_handler.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
@@ -50,7 +51,31 @@ class _SongDataFrameState extends State<SongDataFrame> {
       // print(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       await m.protect(() async {
+        // init rating scale. Must be async :/
         ratingScale ??= await getConfigDouble("rating_scale") ?? 2.5;
+
+        // play next song if skipped in notification
+        if (getConfig().skip) {
+          getConfig().skip = false;
+          print("Skipped in notifiaction, playing next one.");
+          await play(protected: false);
+        }
+
+        // pause if paused in notification
+        if (getConfig().pause) {
+          getConfig().pause = false;
+          print("Paused in Notification, pausing.");
+          pause();
+        }
+
+        // pause if paused in notification
+        if (getConfig().play) {
+          getConfig().play = false;
+          print("Play in Notification, calling pause again.");
+          pause();
+        }
+
+        // play next song if current one is over
         if (playing &&
             widget.player.position >=
                 (widget.player.duration ?? const Duration(days: 1 << 63))) {
@@ -89,6 +114,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
         setState(() {});
 
         if (song.downloaded != 1) {
+          print("Song not downloaded, first try.");
           await song.download();
         }
 
@@ -99,6 +125,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
       var path = await getSongDir(song.id.toString());
       print("Setting source: $path");
 
+      getConfig().mediaItem = song.toMediaItem();
+
       await widget.player.setAudioSource(
           AudioSource.uri(
             Uri.file(path),
@@ -107,6 +135,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
           initialPosition: null,
           initialIndex: null,
           preload: true);
+
+      // getConfig().mediaItem = song.toMediaItem();
 
       widget.player.play(); // Play without waiting for completion
 

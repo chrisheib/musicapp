@@ -8,20 +8,24 @@ import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<bool> downloadFile(String url, String dir, String filename) async {
-  print(url);
-  print(dir);
-  print(filename);
+  print("download url: $url");
+  print("download dir: $dir");
+  print("download filename: $filename");
 
-  if (await File(join(dir, filename)).exists()) {
+  await Permission.storage.request();
+
+  if (await (File(join(dir, filename)).exists())) {
+    print("File already exists!");
     return true;
   }
 
-  await Permission.storage.request();
   if (!await spaceAvailable()) {
+    print("No more space available!");
     return false;
   }
 
   if (!await isUsingFastConnection()) {
+    print("Not using fast connection!");
     return false;
   }
 
