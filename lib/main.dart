@@ -23,10 +23,10 @@ void main() async {
   // Open the database once to initialize upgrades
   await getDbConnection();
 
-  await initAudioServiceHandler();
-
   final session = await AudioSession.instance;
   await session.configure(const AudioSessionConfiguration.music());
+
+  await initAudioServiceHandler();
 
   initRecreateSongDatabaseTimer();
 

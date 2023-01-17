@@ -18,9 +18,9 @@ packages:
   audio_service:
     dependency: "direct main"
     description:
-      name: audio_service
-      url: "https://pub.dartlang.org"
-    source: hosted
+      path: "../audio_service/audio_service"
+      relative: true
+    source: path
     version: "0.18.9"
   audio_service_platform_interface:
     dependency: transitive
@@ -222,10 +222,10 @@ packages:
   just_audio:
     dependency: "direct main"
     description:
-      name: just_audio
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.9.30"
+      path: "../just_audio/just_audio"
+      relative: true
+    source: path
+    version: "0.9.31"
   just_audio_platform_interface:
     dependency: transitive
     description:

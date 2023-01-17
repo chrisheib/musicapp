@@ -68,11 +68,25 @@ class _SongDataFrameState extends State<SongDataFrame> {
           pause();
         }
 
-        // pause if paused in notification
+        // continue if play in notification
         if (getConfig().play) {
           getConfig().play = false;
           print("Play in Notification, calling pause again.");
           pause();
+        }
+
+        // upvote if upvote in notification
+        if (getConfig().upvote) {
+          getConfig().upvote = false;
+          print("upvote in notification, upvoting.");
+          upvote();
+        }
+
+        // downvote if downvote in notification
+        if (getConfig().downvote) {
+          getConfig().play = false;
+          print("downvote in notification, skipping.");
+          downvoteskip();
         }
 
         // play next song if current one is over
@@ -175,6 +189,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
           backgroundColor: Colors.green,
           textColor: Colors.black,
           fontSize: 16.0);
+      setNotificationRating(song.rating);
     }
     await play();
   }
@@ -191,6 +206,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
             backgroundColor: Colors.green,
             textColor: Colors.black,
             fontSize: 16.0);
+        setNotificationRating(song.rating);
       }
     } else {
       var success = await song.downvote();
@@ -203,6 +219,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
             backgroundColor: Colors.green,
             textColor: Colors.black,
             fontSize: 16.0);
+        setNotificationRating(song.rating);
       }
     }
   }

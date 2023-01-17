@@ -7,25 +7,31 @@ enum ConnectionStatus {
   wlan,
 }
 
+DateTime? lastOfflineTimestamp;
+
 Future<ConnectionStatus> getConnectionStatus() async {
-  String cType = "none";
+  // if check within last 30 seconds failed, return none early to improve
+  // responsibility
+  if (lastOfflineTimestamp != null &&
+      DateTime.now().difference(lastOfflineTimestamp!) <
+          const Duration(seconds: 30)) {
+    print(
+        "Connectivity: last failed connection was less then 30 secs ago, return none.");
+    return ConnectionStatus.none;
+  }
+
   var connectivityResult = await (Connectivity().checkConnectivity());
   ConnectionStatus out;
 
   if (connectivityResult == ConnectivityResult.mobile) {
-    cType = "Mobile Data";
     out = ConnectionStatus.mobile;
   } else if (connectivityResult == ConnectivityResult.wifi) {
-    cType = "Wifi Network";
     out = ConnectionStatus.wlan;
   } else if (connectivityResult == ConnectivityResult.ethernet) {
-    cType = "Ethernet Network";
     out = ConnectionStatus.wlan;
   } else if (connectivityResult == ConnectivityResult.bluetooth) {
-    cType = "Blutooth Data connection";
     out = ConnectionStatus.mobile;
   } else {
-    cType = "none";
     out = ConnectionStatus.none;
   }
 
@@ -36,7 +42,13 @@ Future<ConnectionStatus> getConnectionStatus() async {
     }
   }
 
-  print(cType); //Output: Wifi Network
+  if (out == ConnectionStatus.none) {
+    lastOfflineTimestamp = DateTime.now();
+  } else {
+    lastOfflineTimestamp = null;
+  }
+
+  print("Connectivity Result: $connectivityResult, Connection Status: $out");
   return out;
 }
 
