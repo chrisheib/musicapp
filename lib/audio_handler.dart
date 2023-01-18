@@ -71,6 +71,7 @@ AudioPlayer initAudioPlayer() {
 }
 
 void setNotificationRating(int rating) {
+  print("set notification rating: " + rating.toString());
   mySetRating(rating);
   getMyAudioHandler().setControlsFromRating(rating);
 }

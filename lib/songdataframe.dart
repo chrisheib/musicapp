@@ -84,7 +84,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
         // downvote if downvote in notification
         if (getConfig().downvote) {
-          getConfig().play = false;
+          getConfig().downvote = false;
           print("downvote in notification, skipping.");
           downvoteskip();
         }
