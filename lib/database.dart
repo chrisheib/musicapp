@@ -1,3 +1,4 @@
+import 'package:musicapp/main.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -9,13 +10,13 @@ Future<Database> getDbConnection() async {
     // constructed for each platform.
     join(await getDatabasesPath(), 'songs.db'),
     onUpgrade: (db, oldVersion, newVersion) async {
-      print("OnUpdate:  $oldVersion -> $newVersion");
+      logger.info("OnUpdate:  $oldVersion -> $newVersion");
       if (oldVersion <= 3) {
-        print("update 3");
+        logger.info("update 3");
         await db.execute("DROP TABLE IF EXISTS songs");
       }
       if (oldVersion <= 4) {
-        print("update 4");
+        logger.info("update 4");
         await db.execute(
           """CREATE TABLE songs(
             id INTEGER PRIMARY KEY,
@@ -29,7 +30,7 @@ Future<Database> getDbConnection() async {
         );
       }
       if (oldVersion <= 5) {
-        print("update 5");
+        logger.info("update 5");
         await db.execute("DROP TABLE IF EXISTS songs");
         await db.execute(
           """CREATE TABLE songs(
@@ -45,7 +46,7 @@ Future<Database> getDbConnection() async {
         await db.execute("ALTER TABLE songs ADD COLUMN downloaded INT");
       }
       if (oldVersion <= 6) {
-        print("update 6");
+        logger.info("update 6");
         await db.execute("""CREATE TABLE config(
             ckey TEXT PRIMARY KEY,
             value_text TEXT,

@@ -2,30 +2,31 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/disk_size.dart';
+import 'package:musicapp/main.dart';
 import 'package:musicapp/network.dart';
 import 'package:path/path.dart';
 import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<bool> downloadFile(String url, String dir, String filename) async {
-  print("download url: $url");
-  print("download dir: $dir");
-  print("download filename: $filename");
+  logger.info("download url: $url");
+  logger.info("download dir: $dir");
+  logger.info("download filename: $filename");
 
   await Permission.storage.request();
 
   if (await (File(join(dir, filename)).exists())) {
-    print("File already exists!");
+    logger.info("File already exists!");
     return true;
   }
 
   if (!await spaceAvailable()) {
-    print("No more space available!");
+    logger.info("No more space available!");
     return false;
   }
 
   if (!await isUsingFastConnection()) {
-    print("Not using fast connection!");
+    logger.info("Not using fast connection!");
     return false;
   }
 
@@ -42,16 +43,16 @@ Future<bool> downloadFile(String url, String dir, String filename) async {
       url: url,
       name: filename,
       onProgress: (fileName, progress) {
-        print('FILE PROGRESS $fileName, $progress');
+        logger.info('FILE PROGRESS $fileName, $progress');
       },
       onDownloadCompleted: (String path) {
-        print('FILE DOWNLOADED TO PATH: $path');
+        logger.info('FILE DOWNLOADED TO PATH: $path');
       },
       onDownloadError: (String error) {
-        print('DOWNLOAD ERROR: $error');
+        logger.info('DOWNLOAD ERROR: $error');
       });
 
-  print("after done");
+  logger.info("after done");
 
   await moveFile(file!, join(dir, filename));
   bool success = await File(join(dir, filename)).exists();

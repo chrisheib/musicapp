@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/audio_handler.dart';
 import 'package:musicapp/database.dart';
+import 'package:musicapp/main.dart';
 import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
 import 'package:mutex/mutex.dart';
@@ -48,7 +49,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
         rating: 0,
         downloaded: 0);
     Timer.periodic(const Duration(milliseconds: 150), (Timer t) async {
-      // print(
+      // logger.info(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       await m.protect(() async {
         // init rating scale. Must be async :/
@@ -57,35 +58,35 @@ class _SongDataFrameState extends State<SongDataFrame> {
         // play next song if skipped in notification
         if (getConfig().skip) {
           getConfig().skip = false;
-          print("Skipped in notifiaction, playing next one.");
+          logger.info("Skipped in notifiaction, playing next one.");
           await play(protected: false);
         }
 
         // pause if paused in notification
         if (getConfig().pause) {
           getConfig().pause = false;
-          print("Paused in Notification, pausing.");
+          logger.info("Paused in Notification, pausing.");
           pause();
         }
 
         // continue if play in notification
         if (getConfig().play) {
           getConfig().play = false;
-          print("Play in Notification, calling pause again.");
+          logger.info("Play in Notification, calling pause again.");
           pause();
         }
 
         // upvote if upvote in notification
         if (getConfig().upvote) {
           getConfig().upvote = false;
-          print("upvote in notification, upvoting.");
+          logger.info("upvote in notification, upvoting.");
           upvote();
         }
 
         // downvote if downvote in notification
         if (getConfig().downvote) {
           getConfig().downvote = false;
-          print("downvote in notification, skipping.");
+          logger.info("downvote in notification, skipping.");
           downvoteskip();
         }
 
@@ -96,7 +97,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
           if (playing) {
             if (DateTime.now().difference(lastSongChange) >
                 const Duration(seconds: 1)) {
-              print("End of song, playing next one.");
+              logger.info("End of song, playing next one.");
               await play(protected: false);
             }
           }
@@ -110,7 +111,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
   Future<void> play({int id = -1, bool protected = true}) async {
     if (protected) {
       await m.acquire();
-      print("acquire lock");
+      logger.info("acquire lock");
     }
 
     try {
@@ -128,16 +129,16 @@ class _SongDataFrameState extends State<SongDataFrame> {
         setState(() {});
 
         if (song.downloaded != 1) {
-          print("Song not downloaded, first try.");
+          logger.info("Song not downloaded, first try.");
           await song.download();
         }
 
         if (song.downloaded != 1) {
-          print("Song not downloaded, retry.");
+          logger.info("Song not downloaded, retry.");
         }
       } while (song.downloaded != 1);
       var path = await getSongDir(song.id.toString());
-      print("Setting source: $path");
+      logger.info("Setting source: $path");
 
       getConfig().mediaItem = song.toMediaItem();
 
@@ -161,7 +162,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
     } finally {
       if (protected) {
         m.release();
-        print("release lock");
+        logger.info("release lock");
       }
     }
   }
@@ -260,7 +261,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
                     ? const Duration()
                     : widget.player.duration ?? const Duration(),
                 onSeek: (duration) {
-                  print('User selected a new time: $duration');
+                  logger.info('User selected a new time: $duration');
                   widget.player.seek(duration);
                 },
               )),
@@ -385,28 +386,28 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   void downloadNSongs() async {
     var db = await getDbConnection();
+    if (!mounted) return;
     String numberString = await promptNumber(context) ?? "0";
-    int number = int.parse(
-      numberString,
-      onError: (source) {
-        Fluttertoast.showToast(
-            msg: "Du Tröte musst schon eine Nummer eingeben!",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.SNACKBAR,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red.shade300,
-            textColor: Colors.black,
-            fontSize: 16.0);
-        throw Exception("Number expected, got $numberString");
-      },
-    );
+
+    int? number = int.tryParse(numberString);
+    if (number == null) {
+      Fluttertoast.showToast(
+          msg: "Du Tröte musst schon eine Nummer eingeben!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red.shade300,
+          textColor: Colors.black,
+          fontSize: 16.0);
+      throw Exception("Number expected, got $numberString");
+    }
     final List<Map<String, dynamic>> maps =
         await db.query('songs', orderBy: "rating DESC", limit: number);
     var songs = maps.map((e) {
       return Song.fromJson(e);
     });
     for (Song s in songs) {
-      print(s);
+      logger.info(s);
       await s.download();
     }
   }

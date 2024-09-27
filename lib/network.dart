@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:musicapp/main.dart';
 
 enum ConnectionStatus {
   none,
@@ -15,7 +16,7 @@ Future<ConnectionStatus> getConnectionStatus() async {
   if (lastOfflineTimestamp != null &&
       DateTime.now().difference(lastOfflineTimestamp!) <
           const Duration(seconds: 30)) {
-    print(
+    logger.info(
         "Connectivity: last failed connection was less then 30 secs ago, return none.");
     return ConnectionStatus.none;
   }
@@ -48,7 +49,7 @@ Future<ConnectionStatus> getConnectionStatus() async {
     lastOfflineTimestamp = null;
   }
 
-  print("Connectivity Result: $connectivityResult, Connection Status: $out");
+  logger.info("Connectivity Result: $connectivityResult, Connection Status: $out");
   return out;
 }
 

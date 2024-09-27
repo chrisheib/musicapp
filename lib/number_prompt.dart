@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musicapp/main.dart';
 
 final myController = TextEditingController();
 
@@ -26,7 +27,7 @@ Future<String?> promptNumber(BuildContext context) async {
               var userData = myController.text;
               myController.text = '';
               FocusManager.instance.primaryFocus?.unfocus();
-              print(userData);
+              logger.info(userData);
               Navigator.of(context).pop(userData);
             },
           ),

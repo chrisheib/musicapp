@@ -9,8 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
 import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
+// import 'package:sqflite/sqflite.dart';
 import 'audio_handler.dart';
+import 'package:simple_logger/simple_logger.dart';
+
+// Singleton (factory)
+final logger = SimpleLogger();
 
 void main() async {
   // https://docs.flutter.dev/cookbook/persistence/sqlite
@@ -119,11 +123,11 @@ void initRecreateSongDatabaseTimer() async {
 }
 
 void recreateSongDatabase() async {
-  var timestamp_str = await getConfigStr("db_recreate_timestamp") ?? "";
-  var timestamp = DateTime.tryParse(timestamp_str);
+  var timestampStr = await getConfigStr("db_recreate_timestamp") ?? "";
+  var timestamp = DateTime.tryParse(timestampStr);
   if (timestamp != null) {
     if (DateTime.now().difference(timestamp) < const Duration(days: 1)) {
-      print(
+      logger.info(
           "Letzter Abgleich ist noch nicht lang genug her. Letzter Abgleich: $timestamp");
       return;
     }
@@ -137,7 +141,7 @@ void recreateSongDatabase() async {
       textColor: Colors.black,
       fontSize: 16.0);
 
-  print("Start recreateSongDatabase");
+  logger.info("Start recreateSongDatabase");
   var response = await http.get(Uri.parse('https://music.stschiff.de/songs'));
   if (response.statusCode == 200) {
     // If the server did return a 200 OK response,
@@ -148,12 +152,12 @@ void recreateSongDatabase() async {
     batch.execute("delete from songs");
     for (var s in songsJson) {
       var song = Song.fromJson(s);
-      // print(song.id);
+      // logger.info(song.id);
       song.downloaded = await song.isDownloaded() ? 1 : 0;
       song.saveToDbBatch(batch);
     }
     await batch.commit();
-    print("done!");
+    logger.info("done!");
 
     Fluttertoast.showToast(
         msg: "Datenbank aktualisiert!",
@@ -169,5 +173,5 @@ void recreateSongDatabase() async {
     throw Exception('Failed to load album');
   }
   setConfigStr("db_recreate_timestamp", DateTime.now().toString());
-  print("End recreateSongDatabase");
+  logger.info("End recreateSongDatabase");
 }

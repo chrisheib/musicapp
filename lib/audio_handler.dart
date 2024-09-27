@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:musicapp/main.dart';
 
 Future<AudioHandler> initAudioService() async {
   return await AudioService.init(
@@ -71,7 +72,7 @@ AudioPlayer initAudioPlayer() {
 }
 
 void setNotificationRating(int rating) {
-  print("set notification rating: " + rating.toString());
+  logger.info("set notification rating: $rating");
   mySetRating(rating);
   getMyAudioHandler().setControlsFromRating(rating);
 }
@@ -86,23 +87,25 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   void setMediaItem(MediaItem newMediaItem) async {
-    print("Add media item");
+    logger.info("Add media item");
     if (newMediaItem.extras?["rating"] != null) {
-      print("Add media item, rating: " +
-          (newMediaItem.extras?["rating"].toString() ?? ""));
+      logger.info("Add media item, rating: ${newMediaItem.extras?["rating"].toString() ?? ""}");
       setNotificationRating(newMediaItem.extras?["rating"]);
     }
     mediaItem.add(newMediaItem);
   }
 
   void setControlsFromRating(int rating) {
+    logger.info("Set Controls From rating: $rating");
     final playing = _player.playing;
     var pb = playbackState.value.copyWith(controls: [
       if (playing) MediaControl.pause else MediaControl.play,
       MediaControl.skipToNext,
-      like,
-      dislike,
     ]);
+    if (rating <= 6) {
+      pb.controls.add(like);
+    }
+    pb.controls.add(dislike);
     var ratingC = ratingToControl(rating);
     if (ratingC != null) {
       pb.controls.add(ratingC);
@@ -110,11 +113,15 @@ class MyAudioHandler extends BaseAudioHandler {
     playbackState.add(pb);
   }
 
+  // List<MediaControl> getControlsFromRating(int rating) {
+  //   var out = List<MediaControl>;
+  // }
+
   void _notifyAudioHandlerAboutPlaybackEvents() {
     _player.processingStateStream.listen((processingState) {
       if (processingState == ProcessingState.loading) {
         if (_config.mediaItem != null) {
-          print(_config.mediaItem.toString());
+          logger.info(_config.mediaItem.toString());
           setMediaItem(_config.mediaItem!);
           _config.mediaItem = null;
         }
@@ -122,7 +129,7 @@ class MyAudioHandler extends BaseAudioHandler {
       if (processingState == ProcessingState.ready) {
         var m = mediaItem.value;
         if (m != null) {
-          print(m.toString());
+          logger.info(m.toString());
           var m2 = m.copyWith(duration: _player.duration);
           setMediaItem(m2);
         }
@@ -130,7 +137,7 @@ class MyAudioHandler extends BaseAudioHandler {
     });
 
     _player.playbackEventStream.listen((PlaybackEvent event) {
-      // print("Playbackeventstream event: ${event.toString()}");
+      // logger.info("Playbackeventstream event: ${event.toString()}");
       final playing = _player.playing;
       var pb = playbackState.value.copyWith(
         controls: [
@@ -176,18 +183,18 @@ class MyAudioHandler extends BaseAudioHandler {
   @override
   Future<void> skipToPrevious() async {
     setUpvote();
-    print("skipToPrevious -> upvote");
+    logger.info("skipToPrevious -> upvote");
   }
 
   @override
   Future<void> stop() async {
     setDownvote();
-    print("stop -> downvote");
+    logger.info("stop -> downvote");
   }
 
   @override
   Future<void> setRating(Rating rating, [Map<String, dynamic>? extras]) async {
-    print("Rating: ${rating.toString()}, extras: ${extras.toString()}");
+    logger.info("Rating: ${rating.toString()}, extras: ${extras.toString()}");
   }
 
   @override
@@ -197,7 +204,7 @@ class MyAudioHandler extends BaseAudioHandler {
       super.stop();
     }
 
-    print("Custom Action: $name, extras: ${extras.toString()}");
+    logger.info("Custom Action: $name, extras: ${extras.toString()}");
   }
 
   static MediaControl like = const MediaControl(

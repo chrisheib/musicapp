@@ -1,16 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
-import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/downloader.dart';
+import 'package:musicapp/main.dart';
 import 'package:musicapp/network.dart';
 import 'package:musicapp/path.dart';
 import 'package:musicapp/random.dart';
 import 'package:sqflite/sqflite.dart';
-import 'dart:math';
 
 // {
 //  "id":2861,
@@ -61,15 +59,15 @@ class Song {
   }
 
   static Future<Song> fetchRandom(Database db, {double? scale}) async {
-    // print(await isConnected());
+    // logger.info(await isConnected());
     if (await isConnected()) {
       Response response;
       if (scale == null) {
-        print("fetching with default scaling");
+        logger.info("fetching with default scaling");
         response = await get(Uri.parse('https://music.stschiff.de/random_id'));
       } else {
         var scaleStr = scale.toStringAsFixed(1);
-        print("fetching with scaling $scaleStr");
+        logger.info("fetching with scaling $scaleStr");
         response = await get(
             Uri.parse('https://music.stschiff.de/random_id/$scaleStr'));
       }
@@ -126,12 +124,12 @@ class Song {
   }
 
   Future<bool> download() async {
-    print("Start download $id");
+    logger.info("Start download $id");
     downloaded = (await downloadFile('https://music.stschiff.de/songs/$id',
             await getSongDir(), "$id.mp3"))
         ? 1
         : 0;
-    print("Finished download $id: $downloaded");
+    logger.info("Finished download $id: $downloaded");
     var db = await getDbConnection();
     await db.execute(
         "UPDATE songs set downloaded = ? where id = ?", [downloaded, id]);

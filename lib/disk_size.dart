@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:disk_space/disk_space.dart';
+import 'package:musicapp/main.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<double> getFreeSpace() async {
   double? diskSpace = 0;
   diskSpace = await DiskSpace.getFreeDiskSpace;
-  print(diskSpace);
+  logger.info(diskSpace);
 
   List<Directory> directories;
   Map<Directory, double> directorySpace = {};
@@ -27,8 +28,8 @@ Future<double> getFreeSpace() async {
     directorySpace.addEntries([MapEntry(directory, space ?? 0)]);
   }
 
-  print(directorySpace);
-  print(availableSpace);
+  logger.info(directorySpace);
+  logger.info(availableSpace);
 
   // if (!mounted) return;
 
