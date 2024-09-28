@@ -37,12 +37,12 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   dio: ^5.7.0
-  # just_audio: ^0.9.30
-  just_audio:
-    path: ../just_audio/just_audio
-  # audio_service: ^0.18.9
-  audio_service:
-    path: ../audio_service/audio_service
+  # just_audio:
+  #   path: ../just_audio/just_audio
+  just_audio: ^0.9.40
+  # audio_service:
+  #   path: ../audio_service/audio_service
+  audio_service: ^0.18.15
   http: ^1.2.2
   fluttertoast: ^8.1.1
   sqflite:
@@ -51,7 +51,7 @@ dependencies:
   path_provider: ^2.0.11
   flutter_file_downloader: ^2.0.0
   permission_handler: ^11.3.1
-  disk_space: ^0.2.1
+  disk_space_2: ^1.0.8
   mutex: ^3.0.1
   audio_video_progress_bar: ^2.0.3
   text_scroll: ^0.2.0
@@ -59,7 +59,6 @@ dependencies:
   get_it: ^8.0.0
   multiple_random_choice: ^0.1.3
   simple_logger: ^1.9.0+3
-
 
 dev_dependencies:
   flutter_test:

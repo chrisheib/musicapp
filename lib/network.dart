@@ -15,7 +15,7 @@ Future<ConnectionStatus> getConnectionStatus() async {
   // responsibility
   if (lastOfflineTimestamp != null &&
       DateTime.now().difference(lastOfflineTimestamp!) <
-          const Duration(seconds: 30)) {
+          const Duration(seconds: 1)) {
     logger.info(
         "Connectivity: last failed connection was less then 30 secs ago, return none.");
     return ConnectionStatus.none;
@@ -24,13 +24,13 @@ Future<ConnectionStatus> getConnectionStatus() async {
   var connectivityResult = await (Connectivity().checkConnectivity());
   ConnectionStatus out;
 
-  if (connectivityResult == ConnectivityResult.mobile) {
+  if (connectivityResult.contains(ConnectivityResult.mobile)) {
     out = ConnectionStatus.mobile;
-  } else if (connectivityResult == ConnectivityResult.wifi) {
+  } else if (connectivityResult.contains(ConnectivityResult.wifi)) {
     out = ConnectionStatus.wlan;
-  } else if (connectivityResult == ConnectivityResult.ethernet) {
+  } else if (connectivityResult.contains(ConnectivityResult.ethernet)) {
     out = ConnectionStatus.wlan;
-  } else if (connectivityResult == ConnectivityResult.bluetooth) {
+  } else if (connectivityResult.contains(ConnectivityResult.bluetooth)) {
     out = ConnectionStatus.mobile;
   } else {
     out = ConnectionStatus.none;
@@ -39,6 +39,7 @@ Future<ConnectionStatus> getConnectionStatus() async {
   if (out != ConnectionStatus.none) {
     var response = await http.get(Uri.parse('https://music.stschiff.de/ping'));
     if (response.statusCode != 200 || response.body != "pong") {
+      logger.warning("ping failed, setting connection to none!");
       out = ConnectionStatus.none;
     }
   }

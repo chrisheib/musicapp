@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:disk_space/disk_space.dart';
+import 'package:disk_space_2/disk_space_2.dart';
 import 'package:musicapp/main.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';

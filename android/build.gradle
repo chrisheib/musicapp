@@ -6,9 +6,26 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
+// https://github.com/flutter/flutter/issues/146980#issuecomment-2065014106
+// This code is where all the magic happens and fixes the error.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null) {
+                    namespace project.group
+                }
+            }
+        }
+    }
+}
+// This code is where all the magic happens and fixes the error
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
@@ -16,3 +33,4 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+

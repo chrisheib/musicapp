@@ -1,4 +1,5 @@
 import 'package:musicapp/main.dart';
+import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 Future<Database> getDbConnection() async {
@@ -7,7 +8,7 @@ Future<Database> getDbConnection() async {
     // Set the path to the database. Note: Using the `join` function from the
     // `path` package is best practice to ensure the path is correctly
     // constructed for each platform.
-    'songs.db',
+    join(await getDatabasesPath(), 'songs2.db'),
     onUpgrade: (db, oldVersion, newVersion) async {
       logger.info("OnUpdate:  $oldVersion -> $newVersion");
       if (oldVersion <= 3) {
