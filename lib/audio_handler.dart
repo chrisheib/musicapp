@@ -98,24 +98,9 @@ class MyAudioHandler extends BaseAudioHandler {
   void setControlsFromRating(int rating) {
     logger.info("Set Controls From rating: $rating");
     final playing = _player.playing;
-    var pb = playbackState.value.copyWith(controls: [
-      if (playing) MediaControl.pause else MediaControl.play,
-      MediaControl.skipToNext,
-    ]);
-    if (rating <= 6) {
-      pb.controls.add(like);
-    }
-    pb.controls.add(dislike);
-    var ratingC = ratingToControl(rating);
-    if (ratingC != null) {
-      pb.controls.add(ratingC);
-    }
+    var pb = playbackState.value.copyWith(controls: getControls(rating, playing));
     playbackState.add(pb);
   }
-
-  // List<MediaControl> getControlsFromRating(int rating) {
-  //   var out = List<MediaControl>;
-  // }
 
   void _notifyAudioHandlerAboutPlaybackEvents() {
     _player.processingStateStream.listen((processingState) {
@@ -137,15 +122,11 @@ class MyAudioHandler extends BaseAudioHandler {
     });
 
     _player.playbackEventStream.listen((PlaybackEvent event) {
-      // logger.info("Playbackeventstream event: ${event.toString()}");
+      logger.info("Playbackeventstream event: ${event.toString()}");
       final playing = _player.playing;
+      final rating = getConfig().rating;
       var pb = playbackState.value.copyWith(
-        controls: [
-          if (playing) MediaControl.pause else MediaControl.play,
-          MediaControl.skipToNext,
-          like,
-          dislike,
-        ],
+        controls: getControls(rating, playing),
         systemActions: const {MediaAction.seek},
         androidCompactActionIndices: const [
           0,
@@ -160,13 +141,10 @@ class MyAudioHandler extends BaseAudioHandler {
         playing: playing,
         updatePosition: _player.position,
       );
-      var ratingC = ratingToControl(getConfig().rating);
-      if (ratingC != null) {
-        pb.controls.add(ratingC);
-      }
       playbackState.add(pb);
     });
   }
+
 
   @override
   Future<void> play() => setPlay();
@@ -188,7 +166,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
-    setDownvote();
+    // setDownvote();
     logger.info("stop -> downvote");
   }
 
@@ -207,61 +185,71 @@ class MyAudioHandler extends BaseAudioHandler {
     logger.info("Custom Action: $name, extras: ${extras.toString()}");
   }
 
-  static MediaControl like = const MediaControl(
-    androidIcon: 'drawable/thumbs_up',
+  static MediaControl like = MediaControl.custom(
+    androidIcon: 'drawable/up',
     label: 'Like',
-    action: MediaAction.skipToPrevious,
+    name: 'like',
   );
 
-  static MediaControl dislike = const MediaControl(
-    androidIcon: 'drawable/thumbs_down',
+  static MediaControl dislike = MediaControl.custom(
+    androidIcon: 'drawable/down',
     label: 'Dislike',
-    action: MediaAction.stop,
+    name: 'dislike'
   );
 
-  static MediaControl oneStar = const MediaControl(
-    androidIcon: 'drawable/onestar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl oneStar = MediaControl.custom(
+    androidIcon: 'drawable/one',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl twoStar = const MediaControl(
-    androidIcon: 'drawable/twostar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl twoStar = MediaControl.custom(
+    androidIcon: 'drawable/two',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl threeStar = const MediaControl(
-    androidIcon: 'drawable/threestar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl threeStar = MediaControl.custom(
+    androidIcon: 'drawable/three',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl fourStar = const MediaControl(
-    androidIcon: 'drawable/fourstar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl fourStar = MediaControl.custom(
+    androidIcon: 'drawable/four',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl fiveStar = const MediaControl(
-    androidIcon: 'drawable/fivestar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl fiveStar = MediaControl.custom(
+    androidIcon: 'drawable/five',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl sixStar = const MediaControl(
-    androidIcon: 'drawable/sixstar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl sixStar = MediaControl.custom(
+    androidIcon: 'drawable/six',
+    label: 'Star',
+    name: 'star'
   );
 
-  static MediaControl sevenStar = const MediaControl(
-    androidIcon: 'drawable/sevenstar',
-    label: 'Dislike',
-    action: MediaAction.setRating,
+  static MediaControl sevenStar = MediaControl.custom(
+    androidIcon: 'drawable/seven',
+    label: 'Star',
+    name: 'star'
   );
+  
+  List<MediaControl> getControls(int rating, bool playing) {
+    return [  
+      dislike,
+      like,
+      if (playing) MediaControl.pause else MediaControl.play,
+      MediaControl.skipToNext,
+      if (rating >= 1 && rating <= 7) ratingToControl(rating),
+    ];
+  }
 
-  MediaControl? ratingToControl(int rating) {
+  MediaControl ratingToControl(int rating) {
     switch (rating) {
       case 1:
         return oneStar;
@@ -278,7 +266,7 @@ class MyAudioHandler extends BaseAudioHandler {
       case 7:
         return sevenStar;
       default:
-        return null;
+        return oneStar;
     }
   }
 }
