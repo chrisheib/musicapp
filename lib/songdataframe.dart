@@ -66,14 +66,14 @@ class _SongDataFrameState extends State<SongDataFrame> {
         if (getConfig().pause) {
           getConfig().pause = false;
           logger.info("Paused in Notification, pausing.");
-          pause();
+          pauseUnpause();
         }
 
         // continue if play in notification
         if (getConfig().play) {
           getConfig().play = false;
           logger.info("Play in Notification, calling pause again.");
-          pause();
+          pauseUnpause();
         }
 
         // upvote if upvote in notification
@@ -167,8 +167,12 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
   }
 
-  void pause() async {
+  void pauseUnpause() async {
+    if (loading) {
+      return;
+    }
     if (!playing) {
+      play();
       return;
     }
     if (paused) {
@@ -273,7 +277,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   child: MaterialButton(
                     height: 175,
                     minWidth: 150,
-                    onPressed: play,
+                    onPressed: pauseUnpause,
                     color: Colors.blueAccent.shade100,
                     child: Text(getPlayButtonText(),
                         style: const TextStyle(fontSize: 40)),
@@ -283,9 +287,9 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   child: MaterialButton(
                     height: 175,
                     minWidth: 150,
-                    onPressed: playing ? pause : null,
+                    onPressed: play,
                     color: Colors.blueAccent.shade100,
-                    child: Text(paused ? "▶️" : "⏸︎",
+                    child: Text(getSkipButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
             ],
@@ -412,14 +416,21 @@ class _SongDataFrameState extends State<SongDataFrame> {
     }
   }
 
+  String getSkipButtonText() {
+    if (loading) {
+      return '⏰';
+    } else {
+      return '⏭️';
+    } 
+  }
   String getPlayButtonText() {
     if (loading) {
-      // return '◌';
       return '⏰';
-    } else if (playing) {
-      return '⏭️';
+    } else if (playing && !paused) {
+      return '⏸︎';
     } else {
-      return "▶️";
-    }
+      return '▶️';
+    } 
   }
+
 }
