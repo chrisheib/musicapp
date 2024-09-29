@@ -180,6 +180,14 @@ class MyAudioHandler extends BaseAudioHandler {
     if (name == 'dispose') {
       await _player.dispose();
       super.stop();
+    } 
+
+    if (name == 'like') {
+      setUpvote();
+    }
+
+    if (name == 'dislike') {
+      setDownvote();
     }
 
     logger.info("Custom Action: $name, extras: ${extras.toString()}");

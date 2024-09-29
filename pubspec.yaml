@@ -54,7 +54,7 @@ dependencies:
   disk_space_2: ^1.0.8
   mutex: ^3.0.1
   audio_video_progress_bar: ^2.0.3
-  text_scroll: ^0.2.0
+  text_scroll: 0.1.2
   audio_session: ^0.1.13
   get_it: ^8.0.0
   multiple_random_choice: ^0.1.3
