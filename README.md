@@ -8,3 +8,4 @@ flutter devices
 flutter install apk
 flutter emulators
 flutter emulators --launch Pixel_8_Pro_API_34
+flutter clean; flutter build apk --release
