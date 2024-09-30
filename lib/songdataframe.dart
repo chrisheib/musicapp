@@ -252,13 +252,27 @@ class _SongDataFrameState extends State<SongDataFrame> {
             pauseBetween: const Duration(milliseconds: 2500),
             intervalSpaces: 15,
           ),
-          Text(
-              loading
-                  ? "00:00 / --:--"
-                  : "${printDuration(widget.player.position)} / ${printDuration(widget.player.duration ?? const Duration())}",
-              style: const TextStyle(fontSize: 30)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(song.rating >= 1 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 2 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 3 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 4 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 5 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 6 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+              Text(song.rating >= 7 ? "★" : "☆",
+                  style: const TextStyle(fontSize: 40)),
+            ],
+          ),
           Container(
-              margin: const EdgeInsets.all(5.0),
+              margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
               child: ProgressBar(
                 progress: widget.player.position,
                 total: loading
@@ -268,6 +282,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   logger.info('User selected a new time: $duration');
                   widget.player.seek(duration);
                 },
+                timeLabelTextStyle: const TextStyle(fontSize: 26),
               )),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -317,25 +332,6 @@ class _SongDataFrameState extends State<SongDataFrame> {
                     color: Colors.blueAccent.shade100,
                     child: const Text("🤮", style: TextStyle(fontSize: 40)),
                   )),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(song.rating >= 1 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 2 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 3 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 4 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 5 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 6 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 7 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
             ],
           ),
           Row(
