@@ -98,7 +98,10 @@ class MyAudioHandler extends BaseAudioHandler {
   void setControlsFromRating(int rating) {
     logger.info("Set Controls From rating: $rating");
     final playing = _player.playing;
-    var pb = playbackState.value.copyWith(controls: getControls(rating, playing));
+    var pb = playbackState.value.copyWith(
+      controls: getControls(rating, playing),
+      updatePosition: _player.position
+    );
     playbackState.add(pb);
   }
 
