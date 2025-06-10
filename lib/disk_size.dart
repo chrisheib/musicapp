@@ -28,8 +28,8 @@ Future<double> getFreeSpace() async {
     directorySpace.addEntries([MapEntry(directory, space ?? 0)]);
   }
 
-  logger.info(directorySpace);
-  logger.info(availableSpace);
+  logger.info("Directory Space: $directorySpace");
+  logger.info("Available Space: $availableSpace");
 
   // if (!mounted) return;
 

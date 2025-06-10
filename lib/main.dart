@@ -1,18 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:audio_session/audio_session.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
+import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/song.dart';
-import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/songdataframe.dart';
-import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:simple_logger/simple_logger.dart';
+
 // import 'package:sqflite/sqflite.dart';
 import 'audio_handler.dart';
-import 'package:simple_logger/simple_logger.dart';
 
 // Singleton (factory)
 final logger = SimpleLogger();
@@ -22,6 +25,8 @@ void main() async {
 
   // Avoid errors caused by flutter upgrade.
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Permission.storage.request();
 
   GetIt.I.registerSingleton<SingletonConfig>(SingletonConfig());
 
@@ -49,22 +54,22 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   _MyAppState();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'MusicApp',
       theme: FlexThemeData.light(scheme: FlexScheme.hippieBlue),
-      darkTheme: FlexThemeData.dark(scheme: FlexScheme.hippieBlue, darkIsTrueBlack: true),
+      darkTheme: FlexThemeData.dark(
+          scheme: FlexScheme.hippieBlue, darkIsTrueBlack: true),
       themeMode: ThemeMode.dark,
-      home: const MyHomePage(
-        title: 'Flutter Demo Home Page',
-      ),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -75,7 +80,7 @@ class MyHomePage extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
-  final String title;
+  // final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -83,28 +88,37 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   _MyHomePageState();
+
   final AudioPlayer player = GetIt.I<AudioPlayer>();
+  bool compact = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
+    return Scaffold(body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SongDataFrame(
-              key: const Key("song1"),
-              player: player,
-            ),
-            MaterialButton(
-                color: Colors.blueAccent.shade100,
-                onPressed: recreateSongDatabase,
-                child: const Text("recreate song database")),
+                key: const Key("song1"),
+                player: player,
+                compact: isCompact(context)),
+            if (!isCompact(context))
+              MaterialButton(
+                  color: Colors.blueAccent.shade100,
+                  onPressed: recreateSongDatabase,
+                  child: const Text("recreate song database"))
           ],
         ),
-      ),
-    );
+      );
+    }));
   }
+}
+
+bool isCompact(BuildContext context) {
+  const double compactLayoutBreakpoint = 300.0; // In logical pixels
+  return MediaQuery.of(context).size.height < compactLayoutBreakpoint;
 }
 
 void initRecreateSongDatabaseTimer() async {

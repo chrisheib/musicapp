@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:http/http.dart';
 import 'package:musicapp/database.dart';
@@ -137,7 +138,7 @@ class Song {
   }
 
   Future<bool> isDownloaded() async {
-    return await File(await getSongDir(id.toString())).exists();
+    return await File(await getSongDir(id)).exists();
   }
 
   Map<String, dynamic> toMap() {

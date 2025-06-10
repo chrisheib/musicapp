@@ -1,8 +1,9 @@
 import 'dart:async';
+
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/audio_handler.dart';
 import 'package:musicapp/database.dart';
 import 'package:musicapp/main.dart';
@@ -10,6 +11,7 @@ import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
 import 'package:mutex/mutex.dart';
 import 'package:text_scroll/text_scroll.dart';
+
 import 'song.dart';
 
 String printDuration(Duration duration) {
@@ -21,7 +23,10 @@ String printDuration(Duration duration) {
 
 class SongDataFrame extends StatefulWidget {
   final AudioPlayer player;
-  const SongDataFrame({required Key key, required this.player})
+
+  final dynamic compact;
+  const SongDataFrame(
+      {required Key key, required this.player, required this.compact})
       : super(key: key);
 
   @override
@@ -34,7 +39,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
   bool loading = false;
   bool paused = false;
   double? ratingScale;
-  double volume = 1;
+  double volume = .85;
   DateTime lastSongChange = DateTime.now();
   final m = Mutex();
 
@@ -53,7 +58,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       await m.protect(() async {
         // init rating scale. Must be async :/
-        ratingScale ??= await getConfigDouble("rating_scale") ?? 2.5;
+        ratingScale ??= await getConfigDouble("rating_scale") ?? 2;
 
         // play next song if skipped in notification
         if (getConfig().skip) {
@@ -137,7 +142,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
           logger.info("Song not downloaded, retry.");
         }
       } while (song.downloaded != 1);
-      var path = await getSongDir(song.id.toString());
+      var path = await getSongDir(song.id);
       logger.info("Setting source: $path");
 
       getConfig().mediaItem = song.toMediaItem();
@@ -231,45 +236,20 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        children: [
+    String title = song.title != "" ? song.title : song.filename;
+    String artist = song.artist != "" ? " ┃ ${song.artist}" : "";
+    String album = song.album != "" ? " ┃ ${song.album}" : "";
+    String rating = " ┃ ${song.rating}⭐";
+    String text = " $title$artist$album$rating";
+    if (widget.compact) {
+      return Center(
+        child: Column(children: [
           TextScroll(
-            song.title != "" ? song.title : song.filename,
+            text,
             style: const TextStyle(fontSize: 30),
             pauseBetween: const Duration(milliseconds: 2500),
             intervalSpaces: 15,
-          ),
-          TextScroll(
-            song.album,
-            style: const TextStyle(fontSize: 30),
-            pauseBetween: const Duration(milliseconds: 2500),
-            intervalSpaces: 15,
-          ),
-          TextScroll(
-            song.artist,
-            style: const TextStyle(fontSize: 30),
-            pauseBetween: const Duration(milliseconds: 2500),
-            intervalSpaces: 15,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(song.rating >= 1 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 2 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 3 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 4 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 5 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 6 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-              Text(song.rating >= 7 ? "★" : "☆",
-                  style: const TextStyle(fontSize: 40)),
-            ],
+            velocity: Velocity(pixelsPerSecond: Offset(150, 0)),
           ),
           Container(
               margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -290,8 +270,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 175,
-                    minWidth: 150,
+                    height: 90,
+                    minWidth: 80,
                     onPressed: pauseUnpause,
                     color: Colors.blueAccent.shade100,
                     child: Text(getPlayButtonText(),
@@ -300,23 +280,18 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 175,
-                    minWidth: 150,
+                    height: 90,
+                    minWidth: 80,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
                     child: Text(getSkipButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 175,
-                    minWidth: 150,
+                    height: 90,
+                    minWidth: 80,
                     onPressed: upvote,
                     color: song.upvoted
                         ? Colors.greenAccent.shade200
@@ -326,62 +301,169 @@ class _SongDataFrameState extends State<SongDataFrame> {
               Container(
                   margin: const EdgeInsets.all(5.0),
                   child: MaterialButton(
-                    height: 175,
-                    minWidth: 150,
+                    height: 90,
+                    minWidth: 80,
                     onPressed: downvoteskip,
                     color: Colors.blueAccent.shade100,
                     child: const Text("🤮", style: TextStyle(fontSize: 40)),
                   )),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Scale: ${(ratingScale ?? 3).toStringAsFixed(1)}",
-                  style: const TextStyle(fontSize: 25)),
-              Slider(
-                value: ratingScale ?? 3,
-                min: 0.5,
-                max: 4,
-                divisions: 35,
-                label: (ratingScale ?? 3).toStringAsFixed(1),
-                onChanged: (double value) {
-                  setState(() {
-                    ratingScale = value;
-                    setConfigDouble("rating_scale", value);
-                  });
-                },
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Volume: ${(volume).toStringAsFixed(2)}",
-                  style: const TextStyle(fontSize: 25)),
-              Slider(
-                value: volume,
-                min: 0,
-                max: 1,
-                divisions: 100,
-                label: (volume).toStringAsFixed(2),
-                onChanged: (double value) {
-                  setState(() {
-                    volume = value;
-                    widget.player.setVolume(volume * volume);
-                  });
-                },
-              ),
-            ],
-          ),
-          MaterialButton(
-            color: Colors.blueAccent.shade100,
-            onPressed: downloadNSongs,
-            child: const Text("Download N songs"),
-          ),
-        ],
-      ),
-    );
+        ]),
+      );
+    } else {
+      return Center(
+        child: Column(
+          children: [
+            TextScroll(
+              song.title != "" ? song.title : song.filename,
+              style: const TextStyle(fontSize: 30),
+              pauseBetween: const Duration(milliseconds: 2500),
+              intervalSpaces: 15,
+            ),
+            TextScroll(
+              song.album,
+              style: const TextStyle(fontSize: 30),
+              pauseBetween: const Duration(milliseconds: 2500),
+              intervalSpaces: 15,
+            ),
+            TextScroll(
+              song.artist,
+              style: const TextStyle(fontSize: 30),
+              pauseBetween: const Duration(milliseconds: 2500),
+              intervalSpaces: 15,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(song.rating >= 1 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 2 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 3 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 4 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 5 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 6 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+                Text(song.rating >= 7 ? "★" : "☆",
+                    style: const TextStyle(fontSize: 40)),
+              ],
+            ),
+            Container(
+                margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                child: ProgressBar(
+                  progress: widget.player.position,
+                  total: loading
+                      ? const Duration()
+                      : widget.player.duration ?? const Duration(),
+                  onSeek: (duration) {
+                    logger.info('User selected a new time: $duration');
+                    widget.player.seek(duration);
+                  },
+                  timeLabelTextStyle: const TextStyle(fontSize: 26),
+                )),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                    margin: const EdgeInsets.all(5.0),
+                    child: MaterialButton(
+                      height: 175,
+                      minWidth: 150,
+                      onPressed: pauseUnpause,
+                      color: Colors.blueAccent.shade100,
+                      child: Text(getPlayButtonText(),
+                          style: const TextStyle(fontSize: 40)),
+                    )),
+                Container(
+                    margin: const EdgeInsets.all(5.0),
+                    child: MaterialButton(
+                      height: 175,
+                      minWidth: 150,
+                      onPressed: play,
+                      color: Colors.blueAccent.shade100,
+                      child: Text(getSkipButtonText(),
+                          style: const TextStyle(fontSize: 40)),
+                    )),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                    margin: const EdgeInsets.all(5.0),
+                    child: MaterialButton(
+                      height: 175,
+                      minWidth: 150,
+                      onPressed: upvote,
+                      color: song.upvoted
+                          ? Colors.greenAccent.shade200
+                          : Colors.blueAccent.shade100,
+                      child: const Text("💓", style: TextStyle(fontSize: 40)),
+                    )),
+                Container(
+                    margin: const EdgeInsets.all(5.0),
+                    child: MaterialButton(
+                      height: 175,
+                      minWidth: 150,
+                      onPressed: downvoteskip,
+                      color: Colors.blueAccent.shade100,
+                      child: const Text("🤮", style: TextStyle(fontSize: 40)),
+                    )),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Scale: ${(ratingScale ?? 3).toStringAsFixed(1)}",
+                    style: const TextStyle(fontSize: 25)),
+                Slider(
+                  value: ratingScale ?? 3,
+                  min: 0.5,
+                  max: 4,
+                  divisions: 35,
+                  label: (ratingScale ?? 3).toStringAsFixed(1),
+                  onChanged: (double value) {
+                    setState(() {
+                      ratingScale = value;
+                      setConfigDouble("rating_scale", value);
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Volume: ${(volume).toStringAsFixed(2)}",
+                    style: const TextStyle(fontSize: 25)),
+                Slider(
+                  value: volume,
+                  min: 0,
+                  max: 1,
+                  divisions: 100,
+                  label: (volume).toStringAsFixed(2),
+                  onChanged: (double value) {
+                    setState(() {
+                      volume = value;
+                      widget.player.setVolume(volume * volume);
+                    });
+                  },
+                ),
+              ],
+            ),
+            MaterialButton(
+              color: Colors.blueAccent.shade100,
+              onPressed: downloadNSongs,
+              child: const Text("Download N songs"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void downloadNSongs() async {
@@ -417,8 +499,9 @@ class _SongDataFrameState extends State<SongDataFrame> {
       return '⏰';
     } else {
       return '⏭️';
-    } 
+    }
   }
+
   String getPlayButtonText() {
     if (loading) {
       return '⏰';
@@ -426,7 +509,6 @@ class _SongDataFrameState extends State<SongDataFrame> {
       return '⏸︎';
     } else {
       return '▶️';
-    } 
+    }
   }
-
 }

@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/disk_size.dart';
 import 'package:musicapp/main.dart';
-import 'package:musicapp/network.dart';
+// import 'package:musicapp/network.dart';
 import 'package:path/path.dart';
-import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<bool> downloadFile(String url, String dir, String filename) async {
@@ -25,10 +26,10 @@ Future<bool> downloadFile(String url, String dir, String filename) async {
     return false;
   }
 
-  if (!await isUsingFastConnection()) {
-    logger.info("Not using fast connection!");
-    return false;
-  }
+  //if (!await isUsingFastConnection()) {
+  //  logger.info("Not using fast connection!");
+  //  return false;
+  //}
 
   Fluttertoast.showToast(
       msg: "Beginne Donwload $filename!",
