@@ -25,6 +25,7 @@ class SongDataFrame extends StatefulWidget {
   final AudioPlayer player;
 
   final dynamic compact;
+
   const SongDataFrame(
       {required Key key, required this.player, required this.compact})
       : super(key: key);
@@ -63,7 +64,7 @@ class _SongDataFrameState extends State<SongDataFrame> {
         // play next song if skipped in notification
         if (getConfig().skip) {
           getConfig().skip = false;
-          logger.info("Skipped in notifiaction, playing next one.");
+          logger.info("Skipped in notification, playing next one.");
           await play(protected: false);
         }
 
@@ -236,20 +237,21 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
   @override
   Widget build(BuildContext context) {
-    String title = song.title != "" ? song.title : song.filename;
-    String artist = song.artist != "" ? " ┃ ${song.artist}" : "";
-    String album = song.album != "" ? " ┃ ${song.album}" : "";
-    String rating = " ┃ ${song.rating}⭐";
-    String text = " $title$artist$album$rating";
+    String title = song.title != "" ? song.title.trim() : song.filename.trim();
+    String artist = song.artist != "" ? " │ ${song.artist.trim()}" : "";
+    String album = song.album != "" ? " │ ${song.album.trim()}" : "";
+    String rating = "${song.rating} ⭐ │ ";
+    // String rating = "${song.rating} ⭐┃ ┃ ┃ │┃┃  ";
+    String text = " $rating$title$artist$album";
     if (widget.compact) {
       return Center(
         child: Column(children: [
           TextScroll(
             text,
-            style: const TextStyle(fontSize: 30),
+            style: const TextStyle(fontSize: 26),
             pauseBetween: const Duration(milliseconds: 2500),
             intervalSpaces: 15,
-            velocity: Velocity(pixelsPerSecond: Offset(150, 0)),
+            velocity: Velocity(pixelsPerSecond: Offset(120, 0)),
           ),
           Container(
               margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -262,36 +264,36 @@ class _SongDataFrameState extends State<SongDataFrame> {
                   logger.info('User selected a new time: $duration');
                   widget.player.seek(duration);
                 },
-                timeLabelTextStyle: const TextStyle(fontSize: 26),
+                timeLabelTextStyle: const TextStyle(fontSize: 22),
               )),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                  margin: const EdgeInsets.all(5.0),
+                  margin: const EdgeInsets.all(3.0),
                   child: MaterialButton(
                     height: 90,
-                    minWidth: 80,
+                    minWidth: 90,
                     onPressed: pauseUnpause,
                     color: Colors.blueAccent.shade100,
                     child: Text(getPlayButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
               Container(
-                  margin: const EdgeInsets.all(5.0),
+                  margin: const EdgeInsets.all(3.0),
                   child: MaterialButton(
                     height: 90,
-                    minWidth: 80,
+                    minWidth: 90,
                     onPressed: play,
                     color: Colors.blueAccent.shade100,
                     child: Text(getSkipButtonText(),
                         style: const TextStyle(fontSize: 40)),
                   )),
               Container(
-                  margin: const EdgeInsets.all(5.0),
+                  margin: const EdgeInsets.all(3.0),
                   child: MaterialButton(
                     height: 90,
-                    minWidth: 80,
+                    minWidth: 90,
                     onPressed: upvote,
                     color: song.upvoted
                         ? Colors.greenAccent.shade200
@@ -299,10 +301,10 @@ class _SongDataFrameState extends State<SongDataFrame> {
                     child: const Text("💓", style: TextStyle(fontSize: 40)),
                   )),
               Container(
-                  margin: const EdgeInsets.all(5.0),
+                  margin: const EdgeInsets.all(3.0),
                   child: MaterialButton(
                     height: 90,
-                    minWidth: 80,
+                    minWidth: 90,
                     onPressed: downvoteskip,
                     color: Colors.blueAccent.shade100,
                     child: const Text("🤮", style: TextStyle(fontSize: 40)),
