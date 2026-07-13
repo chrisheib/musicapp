@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:audio_session/audio_session.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -11,7 +11,6 @@ import 'package:musicapp/number_prompt.dart';
 import 'package:musicapp/path.dart';
 import 'package:mutex/mutex.dart';
 import 'package:text_scroll/text_scroll.dart';
-
 import 'song.dart';
 
 String printDuration(Duration duration) {
@@ -39,10 +38,13 @@ class _SongDataFrameState extends State<SongDataFrame> {
   bool playing = false;
   bool loading = false;
   bool paused = false;
+  bool pausedByInterruption = false;
   double? ratingScale;
   double volume = .85;
   DateTime lastSongChange = DateTime.now();
   final m = Mutex();
+  late final Timer periodicUpdateTimer;
+  StreamSubscription<AudioInterruptionEvent>? interruptionSubscription;
 
   _SongDataFrameState() {
     song = Song(
@@ -54,7 +56,8 @@ class _SongDataFrameState extends State<SongDataFrame> {
         filename: "",
         rating: 0,
         downloaded: 0);
-    Timer.periodic(const Duration(milliseconds: 150), (Timer t) async {
+      periodicUpdateTimer =
+        Timer.periodic(const Duration(milliseconds: 150), (Timer t) async {
       // logger.info(
       // "playing: ${playing}, pos: ${widget.player.position}, dur: ${widget.player.duration}");
       await m.protect(() async {
@@ -112,6 +115,45 @@ class _SongDataFrameState extends State<SongDataFrame> {
 
       setState(() {});
     });
+
+    initAudioInterruptionHandling();
+  }
+
+  void initAudioInterruptionHandling() async {
+    final session = await AudioSession.instance;
+    interruptionSubscription =
+        session.interruptionEventStream.listen((event) async {
+      if (!event.begin) {
+        if (pausedByInterruption) {
+          logger.info("Audio interruption ended, resuming playback.");
+          pausedByInterruption = false;
+          await widget.player.play();
+          paused = false;
+          setState(() {});
+        }
+        return;
+      }
+
+      // Pause fully for announcement interruptions instead of ducking.
+      if (event.type == AudioInterruptionType.duck ||
+          event.type == AudioInterruptionType.pause) {
+        if (playing && !paused && !loading) {
+          logger.info(
+              "Audio interruption started (${event.type}), pausing playback.");
+          pausedByInterruption = true;
+          await widget.player.pause();
+          paused = true;
+          setState(() {});
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    periodicUpdateTimer.cancel();
+    interruptionSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> play({int id = -1, bool protected = true}) async {
