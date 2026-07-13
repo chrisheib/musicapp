@@ -34,11 +34,23 @@ void main() async {
   await getDbConnection();
 
   final session = await AudioSession.instance;
-  await session.configure(const AudioSessionConfiguration.music());
+  await session.configure(const AudioSessionConfiguration(
+    avAudioSessionCategory: AVAudioSessionCategory.playback,
+    avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.none,
+    avAudioSessionMode: AVAudioSessionMode.defaultMode,
+    avAudioSessionRouteSharingPolicy:
+        AVAudioSessionRouteSharingPolicy.defaultPolicy,
+    avAudioSessionSetActiveOptions: AVAudioSessionSetActiveOptions.none,
+    androidAudioAttributes: AndroidAudioAttributes(
+      contentType: AndroidAudioContentType.music,
+      flags: AndroidAudioFlags.none,
+      usage: AndroidAudioUsage.media,
+    ),
+    androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+    androidWillPauseWhenDucked: true,
+  ));
 
   await initAudioServiceHandler();
-
-  initRecreateSongDatabaseTimer();
 
   runApp(const MyApp(
     key: Key("main"),
@@ -54,6 +66,16 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   _MyAppState();
+
+  @override
+  void initState() {
+    super.initState();
+    // Start background refresh only after the first frame so plugin calls
+    // (like Fluttertoast) run with a fully initialized app/activity.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initRecreateSongDatabaseTimer();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

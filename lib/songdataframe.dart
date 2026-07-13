@@ -527,15 +527,83 @@ class _SongDataFrameState extends State<SongDataFrame> {
           fontSize: 16.0);
       throw Exception("Number expected, got $numberString");
     }
+    if (number <= 0) {
+      Fluttertoast.showToast(
+          msg: "Bitte eine Zahl groesser als 0 eingeben.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red.shade300,
+          textColor: Colors.black,
+          fontSize: 16.0);
+      return;
+    }
+
     final List<Map<String, dynamic>> maps =
         await db.query('songs', orderBy: "rating DESC", limit: number);
     var songs = maps.map((e) {
       return Song.fromJson(e);
-    });
+    }).toList();
+
+    if (songs.isEmpty) {
+      Fluttertoast.showToast(
+          msg: "Keine Songs zum Download gefunden.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red.shade300,
+          textColor: Colors.black,
+          fontSize: 16.0);
+      return;
+    }
+
+    final int total = songs.length;
+    int completed = 0;
+    int successful = 0;
+    int nextMilestone = 10;
+
+    Fluttertoast.showToast(
+        msg: "Starte Batch-Download: $total Songs",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.blue,
+        textColor: Colors.black,
+        fontSize: 16.0);
+
     for (Song s in songs) {
       logger.info(s);
-      await s.download();
+      try {
+        if (!await s.isDownloaded() && await s.download()) {
+          successful += 1;
+        }
+      } catch (e) {
+        logger.warning("Batch download failed for song ${s.id}: $e");
+      }
+
+      completed += 1;
+      int percent = (completed * 100 ~/ total);
+      while (percent >= nextMilestone && nextMilestone <= 100) {
+        Fluttertoast.showToast(
+            msg: "Batch-Download: $nextMilestone% ($completed/$total)",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.SNACKBAR,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.blue,
+            textColor: Colors.black,
+            fontSize: 16.0);
+        nextMilestone += 10;
+      }
     }
+
+    Fluttertoast.showToast(
+        msg: "Batch fertig: $successful/$total Songs geladen",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.green.shade300,
+        textColor: Colors.black,
+        fontSize: 16.0);
   }
 
   String getSkipButtonText() {

@@ -17,6 +17,6 @@ flutter pub upgrade # upgrade dependencies
 (Optional: Increase versionname and versioncode in android/local.properties)
 
 ```
-flutter build apk --release; adb install -r build\app\outputs\flutter-apk\app-release.apk
+fvm flutter build apk --release; adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 

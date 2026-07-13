@@ -8,11 +8,12 @@ let
 
   androidPkgs = pkgs.androidenv.composeAndroidPackages {
     platformVersions = [
+      "33"
       "34"
       "35"
-      "36"
     ];
     buildToolsVersions = [
+      "34.0.0"
       "35.0.0"
     ];
     includeNDK = "if-supported";
@@ -25,7 +26,7 @@ let
 
   emulator = pkgs.androidenv.emulateApp {
     name = "flutter_emu";
-    platformVersion = "35";
+    platformVersion = "34";
     abiVersion = "x86";
     systemImageType = "google_apis_playstore";
     deviceName = "pixel";
@@ -52,7 +53,7 @@ pkgs.mkShell {
     echo "SDK:     $ANDROID_SDK_ROOT"
     echo
     echo "Setup emulator: (just create_emulator)"
-    echo "  avdmanager create avd -n flutter_emulator -k 'system-images;android-35;google_apis_playstore;x86_64' -d pixel"
+    echo "  avdmanager create avd -n flutter_emulator -k 'system-images;android-34;google_apis_playstore;x86_64' -d pixel"
     echo
     echo "Build develop branch:"
     echo "  fvm install"
